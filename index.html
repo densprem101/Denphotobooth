@@ -8866,6 +8866,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     /** Redraws everything that shows saved work (same refresh a backup restore does). */
     async refresh() {
       try { if (window.__denWelcomeMedia) await window.__denWelcomeMedia.reload(); } catch (e) { /* ignore */ }
+      try { if (window.__denCalReload) window.__denCalReload(); } catch (e) { /* ignore */ }      // calendar events pulled from another device show (and are not overwritten by stale in-memory data)
       try { await syncCustomLayouts(); } catch (e) { /* ignore */ }
       try { await syncCustomTemplates(); } catch (e) { /* ignore */ }
       try { renderAcct(); } catch (e) { /* ignore */ }
@@ -12303,18 +12304,22 @@ html.reduce-motion .lc-track .choice { transform: none; }
   function makeBufs() {
     if (BUF || !ctx) return; BUF = {};
     try {
-      BUF.shutter = mkBuf(0.3, function (d, sr, n, rnd) {          // 1: shutter curtain opens (sharp click + body)  2: curtain closes (lighter click)  3: mirror slap + tiny resonance
-        var lp1 = 0, hp1 = 0, hp2 = 0, i, t, v, nn;
+      BUF.shutter = mkBuf(0.34, function (d, sr, n, rnd) {          // DSLR: mirror SLAP (0 ms) > front curtain "tk" (16 ms) > rear curtain "tk" (~70 ms) > mirror return "clk" (~92 ms), all through a small plastic-body resonance
+        var bq = function (f, q) {                                                                // band-pass biquad (RBJ), one per noise colour
+          var w = 6.2832 * f / sr, al = Math.sin(w) / (2 * q), a0 = 1 + al, b0 = al / a0, b2 = -al / a0, a1 = -2 * Math.cos(w) / a0, a2 = (1 - al) / a0, x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+          return function (x) { var y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y; return y; };
+        };
+        var slap = bq(520, 0.9), cur1 = bq(4300, 1.4), cur1b = bq(2300, 2.2), cur2 = bq(3700, 1.5), cur2b = bq(2000, 2.4), ret = bq(1250, 1.2), body = bq(330, 5), i, t, v, nn, u;
         for (i = 0; i < n; i++) {
           t = i / sr; v = 0; nn = rnd();
-          hp1 = nn - lp1; lp1 += (nn - lp1) * 0.25;                                               // high-passed noise = a dry "tk"
-          v += hp1 * Math.exp(-t / 0.0035) * 0.9;
-          v += Math.sin(6.2832 * (190 - 90 * Math.min(1, t / 0.05)) * t) * Math.exp(-t / 0.028) * 0.55;               // solid low "thock"
-          v += Math.sin(6.2832 * 1850 * t) * Math.exp(-t / 0.006) * 0.22;                                          // metallic ring
-          if (t > 0.052) { var u = t - 0.052; hp2 = nn - hp2 * 0.5; v += hp2 * Math.exp(-u / 0.0025) * 0.55 + Math.sin(6.2832 * 3100 * u) * Math.exp(-u / 0.004) * 0.18; }   // second, lighter click
-          if (t > 0.07) { var w2 = t - 0.07; v += Math.sin(6.2832 * 118 * w2) * Math.exp(-w2 / 0.045) * 0.32; }            // soft body of the mirror
+          v += slap(nn) * Math.exp(-t / 0.011) * 1.5 + Math.sin(6.2832 * (150 - 85 * Math.min(1, t / 0.04)) * t) * Math.exp(-t / 0.03) * 0.8;            // mirror slap: woody noise + low thud
+          if (t > 0.016) { u = t - 0.016; v += cur1(nn) * Math.exp(-u / 0.0028) * 2.3 + cur1b(nn) * Math.exp(-u / 0.007) * 1.1 + Math.sin(6.2832 * 2650 * u) * Math.exp(-u / 0.009) * 0.2; }   // front curtain: sharp bright snap
+          if (t > 0.07) { u = t - 0.07; v += cur2(nn) * Math.exp(-u / 0.0024) * 1.6 + cur2b(nn) * Math.exp(-u / 0.006) * 0.8 + Math.sin(6.2832 * 3050 * u) * Math.exp(-u / 0.006) * 0.12; }      // rear curtain: a touch lighter
+          if (t > 0.092) { u = t - 0.092; v += ret(nn) * Math.exp(-u / 0.009) * 1.4 + Math.sin(6.2832 * 205 * u) * Math.exp(-u / 0.024) * 0.45; }                                                  // mirror comes back down
+          v += body(nn) * Math.exp(-t / 0.05) * 0.55 * Math.min(1, t / 0.002);                                                                                                               // the camera body ringing a little
           d[i] = v;
         }
+                for (i = 0; i < Math.min(n, 24); i++) d[i] *= i / 24;                                    // 0.5 ms fade-in: no pop at the first sample, still instant
       });
       BUF.tick = mkBuf(0.12, function (d, sr, n, rnd) {            // wood block: a short woody "tok"
         for (var i = 0; i < n; i++) { var t = i / sr; d[i] = Math.sin(6.2832 * (1050 - 160 * Math.min(1, t / 0.03)) * t) * Math.exp(-t / 0.013) + Math.sin(6.2832 * 2520 * t) * Math.exp(-t / 0.006) * 0.32 + rnd() * Math.exp(-t / 0.0012) * 0.2; }
@@ -12333,7 +12338,7 @@ html.reduce-motion .lc-track .choice { transform: none; }
     });
   }
   var SFX = {
-    shutter: function () { playBuf('shutter', 120, 'shutter', 0.95, 1); },                       // capture: crisp mechanical camera shutter
+    shutter: function () { playBuf('shutter', 120, 'shutter', 1, 1); },                       // capture: crisp mechanical camera shutter
     countTick: function (last) { playBuf('countTick', 60, 'tick', last ? 0.6 : 0.5, last ? 1.26 : 1); },   // countdown: soft wood-block tick each second (a third higher on the last one)
     pop: function () { playBuf('pop', 45, 'pop', 0.34, 0.97 + Math.random() * 0.07); },                // menu / tabs / save / most buttons: a quiet digital pop
     edit: function () { run('edit', 200, sEdit); },
@@ -17015,7 +17020,7 @@ html.wh-ln-open, html.wh-ln-open body { overflow: hidden !important; overscroll-
 .ln-ring { position: absolute; left: 50%; top: 42%; width: 0; height: 0; transform-style: preserve-3d; animation: ln-ry 7s linear infinite; }
 @keyframes ln-ry { to { transform: rotateY(360deg); } }
 .ln-ring i { position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; font-style: normal; font-size: 1.15rem; line-height: 20px; text-align: center; transform: rotateY(var(--a)) translateZ(54px); animation: ln-bob 2.4s ease-in-out infinite; animation-delay: var(--d); backface-visibility: visible; }
-@keyframes ln-bob { 0%, 100% { margin-top: -10px; } 50% { margin-top: 8px; } }
+@keyframes ln-bob { 0%, 100% { transform: rotateY(var(--a)) translateZ(54px) translateY(-10px); } 50% { transform: rotateY(var(--a)) translateZ(54px) translateY(8px); } }
 .ln-scene[data-v="none"] .ln-ring { display: none; }
 .ln-scene[data-v="hearts"] .ln-ring i::before { content: "\2665"; color: #e0728a; text-shadow: 0 1px 0 var(--ink); }
 .ln-scene[data-v="glow"] .ln-ring i::before { content: "\2726"; color: var(--wh-mustard, #e2b74e); text-shadow: 0 0 6px #fff3b8, 0 1px 0 var(--ink); }
@@ -17076,8 +17081,8 @@ html.wh-ln-open, html.wh-ln-open body { overflow: hidden !important; overscroll-
 /* qr, dl, door, code, archive, backup */
 .ln-qr { position: relative; display: grid; grid-template-columns: repeat(11, 1fr); gap: 0; width: 88px; height: 88px; padding: 5px; border: 2.5px solid var(--ink); border-radius: 8px; background: #fff; overflow: hidden; }
 .ln-qr i { background: transparent; } .ln-qr i.k { background: var(--ink); }
-.ln-qr::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; background: var(--wh-clay, #c4784f); box-shadow: 0 0 8px var(--wh-clay, #c4784f); animation: ln-scan 2.4s ease-in-out infinite; }
-@keyframes ln-scan { 0%, 100% { top: 4px; } 50% { top: 80px; } }
+.ln-qr::after { content: ""; position: absolute; top: 4px; left: 0; right: 0; height: 3px; will-change: transform; background: var(--wh-clay, #c4784f); box-shadow: 0 0 8px var(--wh-clay, #c4784f); animation: ln-scan 2.4s ease-in-out infinite; }
+@keyframes ln-scan { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(76px); } }
 .ln-dl { position: relative; width: 120px; height: 100px; display: grid; place-items: center; }
 .ln-dl .ln-strip { width: 44px; height: 92px; padding: 4px; grid-template-rows: repeat(3, 1fr); animation: ln-dls 3s ease-in-out infinite; position: absolute; top: 0; }
 .ln-dl .ln-strip i::after { width: 16px; height: 16px; margin-left: -8px; }
