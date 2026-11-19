@@ -1,0 +1,8 @@
+# Den Collective: every public page may be crawled. Only the private sign-in / sync API and Cloudflare's internal paths are blocked.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /__guest/
+Disallow: /cdn-cgi/
+
+Sitemap: https://denphotobooth.online/sitemap.xml
