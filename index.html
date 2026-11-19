@@ -9608,7 +9608,97 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   let ctToken = 0;
   const ctSession = [];                                                  // templates a guest bundled with a layout for this visit
 
+  /** Finds every photo window (a transparent, rectangle-like hole), including tilted ones. The transparent areas are flood-filled on a ~480 px grid (a cell only counts
+      as "hole" when it is almost fully transparent, so thin dividers between windows survive), then each one is measured with its tightest rotated rectangle.
+      Returns [{x, y, w, h, r}] as fractions of the design (x, y = top-left of the UNROTATED box, r in degrees), or [] when there are none. */
+  function findPhotoWindows(src) {
+    const sw = src.width, sh = src.height; if (!sw || !sh) return [];
+    const GW = 320, GH = Math.max(40, Math.min(1000, Math.round(GW * sh / sw)));
+    const c = document.createElement('canvas'); c.width = GW; c.height = GH;
+    const cx = c.getContext('2d', { willReadFrequently: true }); cx.imageSmoothingQuality = 'high'; cx.drawImage(src, 0, 0, GW, GH);
+    const d = cx.getImageData(0, 0, GW, GH).data, N = GW * GH, hole = new Uint8Array(N); let all = 0;
+    for (let i = 0; i < N; i++) if (d[i * 4 + 3] < 40) { hole[i] = 1; all++; }
+    if (!all || all / N > 0.85) return [];
+    const seen = new Uint8Array(N), px = new Int32Array(N), out = [];
+    for (let st = 0; st < N; st++) {
+      if (!hole[st] || seen[st]) continue;
+      let head = 0, tail = 0; px[tail++] = st; seen[st] = 1;                                  // px doubles as the queue: cells 0..cnt-1 are this region
+      while (head < tail) {
+        const p = px[head++], x = p % GW;
+        if (x > 0 && hole[p - 1] && !seen[p - 1]) { seen[p - 1] = 1; px[tail++] = p - 1; }
+        if (x < GW - 1 && hole[p + 1] && !seen[p + 1]) { seen[p + 1] = 1; px[tail++] = p + 1; }
+        if (p >= GW && hole[p - GW] && !seen[p - GW]) { seen[p - GW] = 1; px[tail++] = p - GW; }
+        if (p < N - GW && hole[p + GW] && !seen[p + GW]) { seen[p + GW] = 1; px[tail++] = p + GW; }
+      }
+      const cnt = tail; if (cnt < N * 0.005) continue;                                  // specks and tiny cut-outs are artwork, not photo windows
+      const pts = [];                                                                           // outline cells -> convex hull (small and quick to rotate)
+      for (let k = 0; k < cnt; k++) { const p = px[k], x = p % GW, y = (p / GW) | 0; if (x === 0 || y === 0 || x === GW - 1 || y === GH - 1 || !hole[p - 1] || !hole[p + 1] || !hole[p - GW] || !hole[p + GW]) { pts.push([x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]); } }
+      pts.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+      const cr = (o, a2, b2) => (a2[0] - o[0]) * (b2[1] - o[1]) - (a2[1] - o[1]) * (b2[0] - o[0]), lo = [], up = [];
+      for (const q of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+      for (let i = pts.length - 1; i >= 0; i--) { const q = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+      const hull = lo.slice(0, -1).concat(up.slice(0, -1)); if (hull.length < 3) continue;
+      const ext = (deg) => { const t = deg * Math.PI / 180, ux = Math.cos(t), uy = Math.sin(t); let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const q of hull) { const u = q[0] * ux + q[1] * uy, v = -q[0] * uy + q[1] * ux; if (u < a0) a0 = u; if (u > a1) a1 = u; if (v < b0) b0 = v; if (v > b1) b1 = v; } return { deg, w: a1 - a0, h: b1 - b0, cu: (a0 + a1) / 2, cv: (b0 + b1) / 2, area: (a1 - a0) * (b1 - b0) }; };
+      let best = ext(0);                                                                       // upright unless a tilt makes the rectangle clearly tighter
+      let tilt = best; for (let a2 = -45; a2 <= 45; a2 += 0.5) { const e = ext(a2); if (e.area < tilt.area) tilt = e; }
+      for (let a2 = tilt.deg - 0.5; a2 <= tilt.deg + 0.5; a2 += 0.05) { const e = ext(a2); if (e.area < tilt.area) tilt = e; }
+      if (tilt.area < best.area * 0.97) best = tilt;
+      if (cnt / best.area < 0.8) continue;                                                     // not rectangle-like (heart, circle, ring ...): leave it to the old method
+      const t = best.deg * Math.PI / 180, CX = best.cu * Math.cos(t) - best.cv * Math.sin(t), CY = best.cu * Math.sin(t) + best.cv * Math.cos(t);
+      const w = best.w + 2, h = best.h + 2;                                                    // one cell back out: the "almost fully transparent" rule shaved the edge by about that much
+      out.push({ x: (CX - w / 2) / GW, y: (CY - h / 2) / GH, w: w / GW, h: h / GH, r: Math.abs(best.deg) < 0.3 ? 0 : Math.round(best.deg * 100) / 100 });
+    }
+    return out;
+  }
+  /** Reading order of a set of boxes {cx, cy, h}: rows top to bottom, left to right inside each row. sig = how many per row ("2,2,2" = 2 columns x 3 rows). */
+  function arrangeOf(rects) {
+    if (!rects.length) return null;
+    const hs = rects.map((r) => r.h).sort((a, b) => a - b), mh = hs[hs.length >> 1], rows = [];
+    rects.map((r, i) => ({ r, i })).sort((a, b) => a.r.cy - b.r.cy).forEach((o) => {
+      const last = rows[rows.length - 1];
+      if (last && Math.abs(o.r.cy - last.cy) < mh * 0.5) { last.items.push(o); last.cy = (last.cy * (last.items.length - 1) + o.r.cy) / last.items.length; } else rows.push({ cy: o.r.cy, items: [o] });
+    });
+    const order = []; rows.forEach((row) => { row.items.sort((a, b) => a.r.cx - b.r.cx); row.items.forEach((o) => order.push(o.i)); });
+    return { sig: rows.map((r) => r.items.length).join(','), order };
+  }
+  /** Do the template's photo windows have the same count AND arrangement as the layout's frames? If so:
+        fit  = the windows can be lined up with the frames just by moving / scaling the template (frames stay exactly as they are),
+        else = the frames simply follow the template's windows. Either way photos land inside the windows. null = no match: nothing changes. */
+  function matchWindows(tpl, layout, g) {
+    const n = layout.count, W = tpl.win; if (!W || W.length !== n || !g.frames || g.frames.length !== n) return null;
+    const tw = W.map((w) => ({ cx: w.x + w.w / 2, cy: w.y + w.h / 2, w: w.w, h: w.h, src: w }));
+    const fr = g.frames.map((f) => ({ cx: (f.x + f.w / 2) / g.W, cy: (f.y + f.h / 2) / g.H, w: f.w / g.W, h: f.h / g.H }));
+    const a = arrangeOf(tw), b = arrangeOf(fr); if (!a || !b || a.sig !== b.sig) return null;
+    const wins = new Array(n); for (let k = 0; k < n; k++) wins[b.order[k]] = a.order[k] != null ? tw[a.order[k]].src : null;
+    const P = a.order.map((i, k) => ({ w: tw[i], f: fr[b.order[k]] }));
+    const solve = (cs, ws, Cs, Ws) => {                     // per axis: frame = s * window + t, from centres AND sizes
+      let a11 = 0, a12 = 0, b1 = 0, b2 = 0; for (let i = 0; i < cs.length; i++) { a11 += cs[i] * cs[i] + ws[i] * ws[i]; a12 += cs[i]; b1 += cs[i] * Cs[i] + ws[i] * Ws[i]; b2 += Cs[i]; }
+      const nn = cs.length, det = a11 * nn - a12 * a12; if (Math.abs(det) < 1e-9) return null;
+      return { s: (b1 * nn - a12 * b2) / det, t: (a11 * b2 - a12 * b1) / det };
+    };
+    const fx = solve(P.map((p) => p.w.cx), P.map((p) => p.w.w), P.map((p) => p.f.cx), P.map((p) => p.f.w));
+    const fy = solve(P.map((p) => p.w.cy), P.map((p) => p.w.h), P.map((p) => p.f.cy), P.map((p) => p.f.h));
+    let fit = false, rect = null;
+    if (fx && fy && fx.s > 0.5 && fx.s < 2 && fy.s > 0.5 && fy.s < 2 && Math.abs(fx.s / fy.s - 1) < 0.1) {
+      let ec = 0, es = 0; P.forEach((p) => { ec = Math.max(ec, Math.abs(fx.s * p.w.cx + fx.t - p.f.cx), Math.abs(fy.s * p.w.cy + fy.t - p.f.cy)); es = Math.max(es, Math.abs(fx.s * p.w.w - p.f.w), Math.abs(fy.s * p.w.h - p.f.h)); });
+      if (ec <= 0.03 && es <= 0.035) {
+        fit = true; let r = { x: fx.t, y: fy.t, w: fx.s, h: fy.s };
+        if (Math.abs(r.x) < 0.004 && Math.abs(r.y) < 0.004 && Math.abs(r.w - 1) < 0.004 && Math.abs(r.h - 1) < 0.004) r = { x: 0, y: 0, w: 1, h: 1 };       // already the same: leave it exactly as designed
+        rect = { x: r.x * g.W, y: r.y * g.H, w: r.w * g.W, h: r.h * g.H };
+      }
+    }
+    return { wins, fit, rect };
+  }
+  const tplAnalysis = new Map();                                                          // template id -> result, so a sync / re-render never repeats the work
   function analyzeTemplate(src) {
+    const win = findPhotoWindows(src), A = analyzeBands(src);
+    if (!A.hole && win.length) {                                                           // the old row scan missed them (e.g. one tall window): use the windows
+      const x0 = Math.min(...win.map((q) => q.x)), y0 = Math.min(...win.map((q) => q.y)), x1 = Math.max(...win.map((q) => q.x + q.w)), y1 = Math.max(...win.map((q) => q.y + q.h));
+      return { bands: win.map((q) => ({ x: q.x, y: q.y, w: q.w, h: q.h })).sort((p, q) => p.y - q.y), hole: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, win };
+    }
+    return { bands: A.bands, hole: A.hole, win };
+  }
+  function analyzeBands(src) {
     const w = 100, h = 300, c = document.createElement('canvas'); c.width = w; c.height = h;
     const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(src, 0, 0, w, h);
     const d = cx.getImageData(0, 0, w, h).data, tr = (x, y) => d[(y * w + x) * 4 + 3] < 100;
@@ -9636,14 +9726,17 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   /** Where the uploaded design sits on the strip: full size when the proportions match, otherwise fitted whole and centred (never stretched or cropped). */
   function tplRect(tpl, g) {
     if (tpl.tr) return { x: tpl.tr.x * g.W, y: tpl.tr.y * g.H, w: tpl.tr.w * g.W, h: tpl.tr.h * g.H };   // moved / resized by the user (default 2x6 strips)
-    if (!tpl.iw || !tpl.ih || Math.abs((tpl.iw / tpl.ih) / (g.W / g.H) - 1) < 0.005) return { x: 0, y: 0, w: g.W, h: g.H };
+    if (!tpl.iw || !tpl.ih || Math.abs((tpl.iw / tpl.ih) / (g.W / g.H) - 1) < 0.04) return { x: 0, y: 0, w: g.W, h: g.H };      // same proportions (or within 4%): fills the layout exactly
     const k = Math.min(g.W / tpl.iw, g.H / tpl.ih), w = tpl.iw * k, h = tpl.ih * k;
     return { x: (g.W - w) / 2, y: (g.H - h) / 2, w, h };
   }
   function customSlots(tpl, layout, g, auto) {
-    const n = layout.count, pr = tplRect(tpl, g); let s, holes = !!tpl.hole, inTpl = false, mine = false;
+    const n = layout.count; let pr = tplRect(tpl, g), s, holes = !!tpl.hole, inTpl = false, mine = false, rect = null;
     const own = !auto && !layout.custom && tpl.fr && tpl.fr[layout.id];       // default 2x6 strips: frames the user aligned over this template
-    if (layout.frames) s = layout.frames;                    // free-form: never re-place the user's frames
+    const wm = !(own && own.length === n) ? matchWindows(tpl, layout, g) : null;   // windows that already match this layout's frame count + arrangement (your manual alignment always wins)
+    if (wm && wm.fit && layout.frames) { s = layout.frames; rect = pr = wm.rect; holes = true; }                 // your frames stay put; the template is moved / scaled onto them
+    else if (wm) { s = wm.wins; inTpl = true; holes = true; }                                                    // the frames follow the template's own windows
+    else if (layout.frames) s = layout.frames;                    // free-form: never re-place the user's frames
     else if (own && own.length === n) { s = own; mine = true; }
     else if (holes && tpl.bands.length === n) { s = tpl.bands; inTpl = true; }
     else if (holes) {
@@ -9655,7 +9748,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }
     const pad = holes && !mine ? Math.max(1, Math.round(0.0025 * g.W)) : 0;           // tiny overlap hides seams behind the artwork
     const X = inTpl ? pr.w : g.W, Y = inTpl ? pr.h : g.H, X0 = inTpl ? pr.x : 0, Y0 = inTpl ? pr.y : 0;
-    return { holes, mine, slots: s.map((r) => ({ x: Math.round(X0 + r.x * X) - pad, y: Math.round(Y0 + r.y * Y) - pad, w: Math.round(r.w * X) + 2 * pad, h: Math.round(r.h * Y) + 2 * pad, r: r.r || 0 })) };
+    return { holes, mine, rect, slots: s.map((r) => ({ x: Math.round(X0 + r.x * X) - pad, y: Math.round(Y0 + r.y * Y) - pad, w: Math.round(r.w * X) + 2 * pad, h: Math.round(r.h * Y) + 2 * pad, r: r.r || 0 })) };
   }
 
   /** Where the template sits in the stack: the number of frames BELOW it (0 = under every frame, n = over every frame). */
@@ -9687,9 +9780,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     e.img = img; e.key = key; TT.list.push(e); return cv;
   }
   function drawCustomStrip(ctx, g, v, tpl, dpi) {
-    const { holes, mine, slots } = customSlots(tpl, v.layout, g), filter = getFilter(v.filterId), L = v.layout;
+    const { holes, mine, slots, rect } = customSlots(tpl, v.layout, g), filter = getFilter(v.filterId), L = v.layout;
     const pos = tplPosFor(tpl, L, slots.length, holes);        // the layout's own template keeps the exact layer order chosen in the editor
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; const pr = tplRect(tpl, g), timg = tintedImg(tpl, v.tplTint, pr.w, pr.h);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; const pr = rect || tplRect(tpl, g), timg = tintedImg(tpl, v.tplTint, pr.w, pr.h);
     ctx.fillStyle = '#FBF7EE'; ctx.fillRect(0, 0, g.W, g.H);
     slots.forEach((f, i) => {
       if (i === pos) ctx.drawImage(timg, pr.x, pr.y, pr.w, pr.h);
@@ -9722,8 +9815,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     {
       try {
         for (const rec of (acct.user ? await listCustom(acct.user.email) : []).concat(ctSession)) {
-          const img = await createImageBitmap(rec.blob), a = analyzeTemplate(img);
-          made.push({ id: rec.id, label: rec.name, custom: true, layoutKey: normTplKey(rec), art: true, lockBg: true, noHeader: true, noFooter: true, bg: '#FBF7EE', frame: null, accent: 'ink', img, iw: img.width, ih: img.height, bands: a.bands, hole: a.hole, fp: rec.fp || null, tr: rec.tr || null, fr: rec.fr || null, frAbove: rec.frAbove != null ? !!rec.frAbove : null });
+          const img = await createImageBitmap(rec.blob), a = tplAnalysis.get(rec.id) || analyzeTemplate(img); tplAnalysis.set(rec.id, a);
+          made.push({ id: rec.id, label: rec.name, custom: true, layoutKey: normTplKey(rec), art: true, lockBg: true, noHeader: true, noFooter: true, bg: '#FBF7EE', frame: null, accent: 'ink', img, iw: img.width, ih: img.height, bands: a.bands, hole: a.hole, win: a.win, fp: rec.fp || null, tr: rec.tr || null, fr: rec.fr || null, frAbove: rec.frAbove != null ? !!rec.frAbove : null });
         }
       } catch (e) { /* storage unavailable: no custom templates */ }
     }
@@ -9787,10 +9880,11 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         toast(`Size mismatch. This layout is ${fmtN(L.widthIn)} × ${fmtN(L.heightIn)} in (${g.W} × ${g.H} px). Your file is ${bmp.width} × ${bmp.height} px. Export it with the same proportions.`); return null;
       }
       const blob = f;                                                                         // saved EXACTLY as uploaded: no re-encoding, scaling or cropping
-      const a = analyzeTemplate(bmp), id = 'c' + Date.now() + Math.random().toString(36).slice(2, 6);
+      const a = analyzeTemplate(bmp), id = 'c' + Date.now() + Math.random().toString(36).slice(2, 6); tplAnalysis.set(id, a);
       const name = (f.name.replace(/\.[^.]+$/, '').trim() || 'Custom').slice(0, 12);
       await tx('readwrite', (s) => s.put({ id, owner: acct.user.email, name, blob, layoutKey: key, ts: Date.now() }), 'templates');
-      return { id, note: !L.custom && Math.abs(ratio - 1) > 0.02 ? 'Template added exactly as uploaded (not cropped or stretched).' : (a.hole ? 'Template added. Photo windows detected.' : 'Template added. Your design is the background.') };
+      const mt = matchWindows({ win: a.win }, L, g);
+      return { id, note: mt ? `Template added and lined up with your ${L.count} photo frame${L.count > 1 ? 's' : ''}.` : !L.custom && Math.abs(ratio - 1) > 0.04 ? 'Template added exactly as uploaded (not cropped or stretched).' : (a.hole ? 'Template added. Photo windows detected.' : 'Template added. Your design is the background.') };
     } catch (err) { toast('Could not read that file. Export it as a PNG and try again.'); return null; }
   }
 
