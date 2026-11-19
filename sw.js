@@ -1,5 +1,5 @@
 /* Den Collective: offline-ready app (PWA). Bump VERSION every time you upload a new index.html so installed apps update. */
-const VERSION = 'den-v209';
+const VERSION = 'den-v210';
 const SHELL = ['/', '/index.html', '/manifest.json', '/favicon-32x32.png?v=6', '/favicon-48x48.png?v=6', '/favicon.ico', '/apple-touch-icon.png?v=6', '/icon-192.png?v=5', '/icon-512.png?v=5', '/icon-maskable-512.png?v=5', '/logo.png', '/icon-maskable-192.png', '/assets/den-art.js?v=202', '/assets/den-wav.js?v=202'];
 const EXTRA = [   // third-party files cached on install so they also work offline (fonts are added the first time the app is opened online)
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400;1,500&family=Caveat:wght@500;600&family=Special+Elite&display=swap',
@@ -8,7 +8,7 @@ const EXTRA = [   // third-party files cached on install so they also work offli
 const FOREIGN = /^(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)$/;
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then(async (c) => {
-    await c.addAll(SHELL);
+    await Promise.all(SHELL.map((u) => fetch(new Request(u, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(u); return c.put(u, r); })));   // always the fresh copy from the network, never an old HTTP-cached one
     await Promise.all(EXTRA.map((u) => fetch(new Request(u, { mode: 'no-cors' })).then((r) => c.put(u, r)).catch(() => {})));   // never blocks the install
   }).then(() => self.skipWaiting()));
 });
@@ -19,13 +19,18 @@ self.addEventListener('fetch', (e) => {
   if (r.method !== 'GET') return;
   if (u.pathname.endsWith('.apk')) return;   // the Android installer is always downloaded straight from the network, never stored in the app cache
   if (r.mode === 'navigate' && u.origin === location.origin && u.pathname !== '/' && u.pathname !== '/index.html') return;   // /privacy and /terms are real pages: open them from the network, never the app shell
-  if (r.mode === 'navigate') {                                   // opening the app: the saved page opens at once; a fresh copy is fetched quietly for next time
-    const upd = fetch(r).then((res) => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then((c) => c.put('/index.html', cp)); } return res; }).catch(() => null);
-    e.waitUntil(upd);
-    e.respondWith(caches.match('/index.html').then((hit) => hit || upd.then((res) => res || caches.match('/'))));
+  if (r.mode === 'navigate') {                                   // opening the app: NETWORK FIRST, so a reload always shows the newest version; the saved copy is only the offline fallback (or if the network takes over 4 s)
+    const net = fetch(r, { cache: 'no-cache' }).then((res) => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then((c) => c.put('/index.html', cp)); } return res; });
+    const slow = new Promise((ok) => setTimeout(ok, 4000, null));
+    e.respondWith(Promise.race([net.catch(() => null), slow]).then((res) => res || caches.match('/index.html').then((hit) => hit || net.catch(() => caches.match('/')))));
+    e.waitUntil(net.catch(() => null));
     return;
   }
-  if (u.origin === location.origin || FOREIGN.test(u.hostname)) {   // everything else: saved copy first, refreshed quietly in the background
+  if (u.origin === location.origin) {                              // the app's own scripts, styles and images: network first too (never stuck behind an old copy), saved copy only when offline
+    e.respondWith(fetch(r, { cache: 'no-cache' }).then((res) => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then((c) => c.put(r, cp)); } return res; }).catch(() => caches.match(r)));
+    return;
+  }
+  if (FOREIGN.test(u.hostname)) {   // third-party fonts / libraries: saved copy first, refreshed quietly in the background
     e.respondWith(caches.match(r).then((hit) => {
       const net = fetch(r).then((res) => { if (res.ok || res.type === 'opaque') { const cp = res.clone(); caches.open(VERSION).then((c) => c.put(r, cp)); } return res; }).catch(() => hit);
       return hit || net;

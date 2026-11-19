@@ -9736,8 +9736,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const wm = !(own && own.length === n) ? matchWindows(tpl, layout, g) : null;   // windows that already match this layout's frame count + arrangement (your manual alignment always wins)
     if (wm && wm.fit && layout.frames) { s = layout.frames; rect = pr = wm.rect; holes = true; }                 // your frames stay put; the template is moved / scaled onto them
     else if (wm) { s = wm.wins; inTpl = true; holes = true; }                                                    // the frames follow the template's own windows
+    else if (own && own.length === n) { s = own; mine = true; }  // the frames saved in "Adjust photo frames" win, also on layouts that ship their own default frames (4x6 with 6 photos)
     else if (layout.frames) s = layout.frames;                    // free-form: never re-place the user's frames
-    else if (own && own.length === n) { s = own; mine = true; }
     else if (holes && tpl.bands.length === n) { s = tpl.bands; inTpl = true; }
     else if (holes) {
       const b = tpl.hole, gap = Math.min(0.1 / 6, b.h * 0.04), h = (b.h - gap * (n - 1)) / n;
