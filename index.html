@@ -11727,7 +11727,12 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     $('wsFull').onclick = () => { const L = cur(); if (!L || L.type === 'text') return; L.cx = 50; L.cy = 50; L.w = 100; L.h = 100; L.rot = 0; render(); };
     $('wsMin').onclick = () => { const m = $('wsEd').classList.toggle('ws-min'); $('wsMin').textContent = m ? 'Show tools' : 'Hide tools'; };
     $('wsImgAdd').onclick = () => $('wsImgFile').click(); $('wsImgFile').onchange = (e) => { addImages([...e.target.files]); e.target.value = ''; };
-    $('wsVidAdd').onclick = () => $('wsVidFile').click(); $('wsVidFile').onchange = (e) => { addVideos(e.target.files); e.target.value = ''; };
+    const vb = $('wsVidAdd'), vbTxt = vb.textContent; let vbT = 0;
+    const vbBusy = (t, ms) => { vb.textContent = t; vb.disabled = !!ms && /Adding/.test(t); clearTimeout(vbT); vbT = setTimeout(() => { vb.textContent = vbTxt; vb.disabled = false; }, ms || 4000); };
+    vb.onclick = () => { vbBusy('Opening your videos\u2026 (iCloud videos can take a while)', 90000); $('wsVidFile').click(); };
+    $('wsVidFile').addEventListener('cancel', () => { clearTimeout(vbT); vb.textContent = vbTxt; vb.disabled = false; });
+    const vidIn = (e) => { const fs = e.target.files; if (!fs || !fs.length) return; const n = fs.length; vbBusy('Adding ' + n + ' video' + (n > 1 ? 's' : '') + '\u2026', 30000); toast('Adding ' + n + ' video' + (n > 1 ? 's' : '') + '\u2026'); addVideos(fs); e.target.value = ''; const done = () => { clearTimeout(vbT); vb.textContent = vbTxt; vb.disabled = false; toast('Video ready'); }; setTimeout(() => { const v = document.querySelector('#wsStage video, #wsFrame video'); if (v && v.readyState > 1) done(); else if (v) { v.addEventListener('loadeddata', done, { once: true }); v.addEventListener('error', () => { clearTimeout(vbT); vb.textContent = vbTxt; vb.disabled = false; }, { once: true }); } else done(); }, 300); };
+    $('wsVidFile').onchange = vidIn; $('wsVidFile').addEventListener('input', (e) => { if (e.target.files && e.target.files.length) vidIn(e); });
     document.querySelectorAll('[data-addtxt]').forEach((b) => b.onclick = () => add(textLayer(b.dataset.addtxt), 'text'));
     $('wsLiveAdd').onclick = () => addMedia(mk('live', { w: 100, h: 100, on: true }), 'live');
     $('wsLiveOn').onchange = () => { const L = cur() && cur().type === 'live' ? cur() : ev.layers.find((l) => l.type === 'live'); if (L) { L.on = $('wsLiveOn').checked; if (L.on) liveErr = false; render(); } };
@@ -11879,7 +11884,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       'safe T/B ' + probe('height:env(safe-area-inset-top,0px)') + ' / ' + probe('height:env(safe-area-inset-bottom,0px)'),
       'nudges ' + (window.__denVp ? window.__denVp.n : 0) + '  edge ' + (window.__denEdge ? window.__denEdge.imgs + ' imgs / ' + window.__denEdge.hits + ' hits' : '-'), 'viewport ' + (Math.abs(innerHeight - probe('height:100lvh')) > 6 ? 'SHORT' : 'ok'),
       'standalone ' + (navigator.standalone === true || (matchMedia && matchMedia('(display-mode: standalone)').matches)), 'html bg ' + cs.backgroundColor, 'screen ' + document.body.dataset.screen,
-      'vp ' + (m ? m.content : '-'), 'v225'].join('\n');
+      'vp ' + (m ? m.content : '-'), 'v227'].join('\n');
   }
   function show() { if (box) { box.remove(); box = null; clearInterval(tm); return; } box = document.createElement('pre'); box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:2147483600;margin:0;padding:8px 10px;background:rgba(20,20,20,.88);color:#9fe870;font:12px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre'; document.body.appendChild(box); var u = function () { box.textContent = text(); }; u(); tm = setInterval(u, 700); }
   document.addEventListener('pointerdown', function (e) {
@@ -11975,8 +11980,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function evEdge() {
     var b = document.body, ev = document.getElementById('evScreen');
     if (!b || !ev || ev.hidden || !b.classList.contains('ev-live')) return '';
-    var w = innerWidth, h = innerHeight, imgs = ev.querySelectorAll('.wl-image img'), key = w + 'x' + h;
-    for (var k = 0; k < imgs.length; k++) key += '|' + (imgs[k].currentSrc || imgs[k].src || '').slice(-24) + (imgs[k].complete ? 1 : 0);
+    var w = innerWidth, h = innerHeight, imgs = ev.querySelectorAll('.wl-image img, .wl-video video'), key = w + 'x' + h;
+    for (var k = 0; k < imgs.length; k++) key += '|' + (imgs[k].currentSrc || imgs[k].src || '').slice(-24) + (imgs[k].complete || imgs[k].readyState > 1 ? 1 : 0) + (imgs[k].tagName === 'VIDEO' ? Math.floor(imgs[k].currentTime / 4) : '');
     if (key === edgeKey) return edgeGrad;
     var out = [], ok = 0;
     try {
@@ -11985,9 +11990,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       for (var i = 0; i < SLICES; i++) {
         var x = Math.round((i + 0.5) * w / SLICES), col = '';
         for (var j = imgs.length - 1; j >= 0 && !col; j--) {                                                   // top picture layer first (the layers have pointer-events: none, so a hit-test cannot see them)
-          var el = imgs[j]; if (!el.naturalWidth) continue;
+          var el = imgs[j]; if (!(el.naturalWidth || el.videoWidth)) continue;
           var wl = el.closest('.wl'), tr = wl ? wl.style.transform : '', am = /rotate\((-?[0-9.]+)deg\)/.exec(tr || ''), ang = am ? parseFloat(am[1]) : 0; if (Math.abs(ang) > 1.5) continue;      // clearly rotated layers are skipped, not guessed
-          var r = el.getBoundingClientRect(), iw = el.naturalWidth, ih = el.naturalHeight, sc; if (x < r.left || x > r.right || h - 2 < r.top || h - 2 > r.bottom) continue; sc = Math.max(r.width / iw, r.height / ih);   // object-fit: cover
+          var r = el.getBoundingClientRect(), iw = el.naturalWidth || el.videoWidth, ih = el.naturalHeight || el.videoHeight, sc; if (x < r.left || x > r.right || h - 2 < r.top || h - 2 > r.bottom) continue; sc = Math.max(r.width / iw, r.height / ih);   // object-fit: cover
           var ox = (r.width - iw * sc) / 2, oy = (r.height - ih * sc) / 2, px = ((x - r.left) - ox) / sc, py = ((h - 2 - r.top) - oy) / sc;
           if (px < 0 || py < 0 || px >= iw || py >= ih) continue;
           cx.clearRect(0, 0, 1, 1); cx.drawImage(el, Math.max(0, Math.min(iw - 3, px - 1)), Math.max(0, Math.min(ih - 3, py - 1)), 3, 3, 0, 0, 1, 1);
@@ -12001,8 +12006,30 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     window.__denEdge = { imgs: imgs.length, hits: ok, slices: out.length };
     return edgeGrad;
   }
+  /* a full-bleed welcome picture is also painted as the page background, at exactly the same size and place: the strip under the page (outside the layout viewport, where only the page background shows) then simply shows the bottom of the picture */
+  var fbKey = '';
+  function evFull() {
+    var b = document.body, ev = document.getElementById('evScreen'); if (!b || !ev || ev.hidden || !b.classList.contains('ev-live')) return null;
+    var imgs = ev.querySelectorAll('.wl-image img'), er = ev.getBoundingClientRect();
+    for (var j = imgs.length - 1; j >= 0; j--) {
+      var el = imgs[j]; if (!el.naturalWidth || !el.complete) continue;
+      var wl = el.closest('.wl'), am = /rotate\((-?[0-9.]+)deg\)/.exec((wl && wl.style.transform) || ''); if (am && Math.abs(parseFloat(am[1])) > 1.5) continue;
+      var r = el.getBoundingClientRect(); if (r.width < er.width * 0.98 || r.height < er.height * 0.98) continue;
+      var iw = el.naturalWidth, ih = el.naturalHeight, sc = Math.max(r.width / iw, r.height / ih);
+      return { src: el.currentSrc || el.src, size: (iw * sc).toFixed(1) + 'px ' + (ih * sc).toFixed(1) + 'px', pos: (r.left + (r.width - iw * sc) / 2).toFixed(1) + 'px ' + (r.top + (r.height - ih * sc) / 2).toFixed(1) + 'px' };
+    }
+    return null;
+  }
   function paintEdge(fallback) {
-    var st = document.documentElement.style, g = evEdge(), c = edge() || fallback || '';
+    var st = document.documentElement.style, f = null; try { f = evFull(); } catch (e) {}
+    if (f && f.src) {
+      var k = f.src.length + '|' + f.src.slice(-32) + '|' + f.size + '|' + f.pos;
+      if (k !== fbKey) { fbKey = k; try { st.setProperty('background-image', 'url("' + f.src.replace(/"/g, '%22') + '")', 'important'); st.setProperty('background-repeat', 'no-repeat', 'important'); st.setProperty('background-size', f.size, 'important'); st.setProperty('background-position', f.pos, 'important'); } catch (e) {} }
+      var c0 = edge() || fallback || ''; if (c0 && c0 !== lastEdge) { lastEdge = c0; try { st.setProperty('background-color', c0, 'important'); } catch (e) {} }
+      return;
+    }
+    fbKey = '';
+    var g = evEdge(), c = edge() || fallback || '';
     if (c && c !== lastEdge) { lastEdge = c; try { st.setProperty('transition', 'background-color .2s linear'); st.setProperty('background-color', c, 'important'); } catch (e) {} }
     try {
       if (g) { st.setProperty('background-image', g, 'important'); st.setProperty('background-repeat', 'repeat-y', 'important'); st.setProperty('background-size', '100% 8px', 'important'); st.setProperty('background-position', 'left top', 'important');   /* the bottom strip lies outside the page box but inside the canvas: a column-colour tile that repeats downward paints it with the poster's own edge colours */ }
