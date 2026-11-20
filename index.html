@@ -11876,8 +11876,26 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (scr === 'landing' && h.getAttribute('data-look') === 'whimsical' && !b.classList.contains('ev-live')) return '#fdf8ea';   // the landing page ends in the cream "How it works" card; the strip under it matches that, not the page sky
     return hex(getComputedStyle(b).backgroundColor) || hex(getComputedStyle(h).getPropertyValue('--paper')) || FALLBACK;      // (never the page's own --chrome: that would just read itself back)
   }
+  /* The strip some iPads / iPhones show under the web page in the Home Screen app is painted with the page's own background colour (the <html> element), which the page cannot cover with content.
+     So that colour always follows what is actually showing along the bottom edge of the screen: the first wide, non-transparent layer under the middle of the bottom edge. */
+  var lastEdge = '';
+  function edge() {
+    try {
+      var w = innerWidth, h = innerHeight, els = document.elementsFromPoint(Math.round(w / 2), h - 2), root = document.documentElement;
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i]; if (el === root) continue;
+        var r = el.getBoundingClientRect(); if (r.width < w * 0.6) continue;                       // toasts, chips and buttons never count
+        var cs = getComputedStyle(el), c = hex(cs.backgroundColor); if (c) return c;
+      }
+    } catch (e) {}
+    return '';
+  }
+  function paintEdge(fallback) {
+    var c = edge() || fallback || '';
+    if (c && c !== lastEdge) { lastEdge = c; try { var st = document.documentElement.style; st.setProperty('transition', 'background-color .2s linear'); st.setProperty('background-color', c, 'important'); } catch (e) {} }
+  }
   function sync() {
-    var c = pick();
+    var c = pick(); paintEdge(c);
     if (c && c !== last) { last = c; metas().forEach(function (m) { m.setAttribute('content', c); }); try { document.documentElement.style.setProperty('--chrome', c); } catch (e) {} try { document.querySelector('meta[name="msapplication-navbutton-color"]').setAttribute('content', c); } catch (e) {} }
   }
   function boot() {
@@ -11891,7 +11909,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       var cap = document.getElementById('screen-capture'); if (cap) mo.observe(cap, { attributes: true, attributeFilter: ['class'] });
     } catch (e) {}
     document.addEventListener('visibilitychange', sync); window.addEventListener('pageshow', sync); window.addEventListener('resize', sync);
-    setInterval(sync, 2500);
+    setInterval(sync, 900);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
