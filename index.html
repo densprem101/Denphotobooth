@@ -11835,7 +11835,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function lvh() { var d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; document.body.appendChild(d); var h = d.getBoundingClientRect().height; d.remove(); return h; }
   function short() { try { var h = lvh(), v = window.visualViewport ? window.visualViewport.height : innerHeight; return Math.abs(h - innerHeight) > 6 || Math.abs(v - innerHeight) > 6; } catch (e) { return false; } }
   function nudge() {
-    if (busy || !standalone() || !document.body) return; busy = true;
+    if (busy || !standalone() || !document.body || !short() || (window.__denVp && window.__denVp.n >= 3)) return; busy = true;   /* only while actually short, at most 3 times per launch: repeated nudging made the screen flicker */
     var base = canon(), ms = metas();
     try {
       window.__denVp = window.__denVp || { n: 0 }; window.__denVp.n++;
@@ -11855,7 +11855,14 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   window.addEventListener('load', run); window.addEventListener('pageshow', run); window.addEventListener('orientationchange', run);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') run(); });
   window.addEventListener('focus', run);
-  setInterval(function () { if (standalone() && short() && tries < 20) { tries++; nudge(); } }, 1500);
+})();
+</script>
+<script id="denEvH">
+(function () { var r = document.documentElement, t = 0;
+  function f() { try { var h = Math.round(window.innerHeight || 0); if (h > 200) r.style.setProperty('--ev-h', h + 'px'); } catch (e) {} }
+  function g() { f(); clearTimeout(t); t = setTimeout(f, 250); }
+  f(); ['resize', 'orientationchange', 'pageshow', 'focus'].forEach(function (n) { window.addEventListener(n, g); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', g);
 })();
 </script>
 <script id="denDiag">
@@ -11871,7 +11878,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       'safe T/B ' + probe('height:env(safe-area-inset-top,0px)') + ' / ' + probe('height:env(safe-area-inset-bottom,0px)'),
       'nudges ' + (window.__denVp ? window.__denVp.n : 0) + '  edge ' + (window.__denEdge ? window.__denEdge.imgs + ' imgs / ' + window.__denEdge.hits + ' hits' : '-'), 'viewport ' + (Math.abs(innerHeight - probe('height:100lvh')) > 6 ? 'SHORT' : 'ok'),
       'standalone ' + (navigator.standalone === true || (matchMedia && matchMedia('(display-mode: standalone)').matches)), 'html bg ' + cs.backgroundColor, 'screen ' + document.body.dataset.screen,
-      'vp ' + (m ? m.content : '-'), 'v221'].join('\n');
+      'vp ' + (m ? m.content : '-'), 'v223'].join('\n');
   }
   function show() { if (box) { box.remove(); box = null; clearInterval(tm); return; } box = document.createElement('pre'); box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:2147483600;margin:0;padding:8px 10px;background:rgba(20,20,20,.88);color:#9fe870;font:12px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre'; document.body.appendChild(box); var u = function () { box.textContent = text(); }; u(); tm = setInterval(u, 700); }
   document.addEventListener('pointerdown', function (e) {
@@ -17869,7 +17876,7 @@ body { min-height: 100vh; min-height: 100dvh; }
   .ev-screen { width: auto; height: auto; top: 0; right: 0; bottom: 0; left: 0; }   /* Home Screen app: 100dvh stops above the bottom safe area; pinning all four edges covers the whole screen (no strip under the launched event / welcome screen) */
   html[data-look="whimsical"]:has(body[data-screen="landing"]) { background-image: linear-gradient(to top, #fdf8ea 0, #fdf8ea 140px, rgba(253, 248, 234, 0) 140px); background-repeat: no-repeat; }
   body[data-screen="landing"] { bottom: -64px; }
-  @media (display-mode:standalone) { .ev-screen .wsstage { bottom: 34px; height: auto; } }   /* welcome poster stops above the strip so its bottom text stays visible */
+  .ev-screen { bottom: auto; height: var(--ev-h, 100%); }   /* the welcome poster is exactly as tall as the area the page can really use (innerHeight), so its bottom text is never under the strip */
   body[data-screen="landing"] #screen-landing { height: calc(100vh + 64px); height: calc(100dvh + 64px); min-height: calc(100dvh + 64px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
 }
 </style>
