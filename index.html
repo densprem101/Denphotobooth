@@ -11936,9 +11936,16 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if ((m = c.match(/rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)(?:[ ,/]+([\d.]+))?/))) { if (m[4] !== undefined && parseFloat(m[4]) < 0.5) return ''; return '#' + [m[1], m[2], m[3]].map(function (n) { return ('0' + Math.max(0, Math.min(255, +n)).toString(16)).slice(-2); }).join(''); }
     return '';
   }
+  function evOn() { var b = document.body, e = document.getElementById('evScreen'); return !!(b && e && !e.hidden && b.classList.contains('ev-live') && b.dataset && b.dataset.screen === 'landing'); }
+  function clearEdge() {                                                                           // stop painting sampled picture strips under the page; keep it plain black
+    var st = document.documentElement.style;
+    try { ['background-image', 'background-repeat', 'background-size', 'background-position', 'transition'].forEach(function (p) { st.removeProperty(p); }); st.setProperty('background-color', '#000000', 'important'); } catch (e) {}
+    lastEdge = '#000000'; fbKey = '';
+  }
   function pick() {
     var b = document.body, h = document.documentElement; if (!b) return FALLBACK;
     var scr = b.dataset ? b.dataset.screen : '', cap = document.getElementById('screen-capture');
+    if (evOn()) return '#000000';                                                                          // launched welcome screen: one constant colour, nothing to chase or flicker
     if (scr === 'capture' && cap && cap.classList.contains('cam-full')) return '#1d232c';
     var ev = document.getElementById('evScreen');
     if (b.classList.contains('ev-live') && scr === 'landing' && ev && !ev.hidden) {
@@ -12021,6 +12028,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     return null;
   }
   function paintEdge(fallback) {
+    if (evOn()) { clearEdge(); return; }                                                           // a launched welcome screen is full bleed: no strip to match, so nothing to repaint or flicker
     var st = document.documentElement.style, f = null; try { f = evFull(); } catch (e) {}
     if (f && f.src) {
       var k = f.src.length + '|' + f.src.slice(-32) + '|' + f.size + '|' + f.pos;
@@ -19165,6 +19173,59 @@ html[data-look="whimsical"][data-circus] ::selection { background: #ffd58a; colo
   var a = ['densprem02', 'gmail.com'].join('@');
   Array.prototype.forEach.call(document.querySelectorAll('[data-mail]'), function (e) { e.setAttribute('href', 'mailto:' + a); });
   Array.prototype.forEach.call(document.querySelectorAll('[data-mail-text]'), function (e) { e.textContent = a; });
+})();
+</script>
+<style id="den-ev-fullscreen">
+/* Launched welcome screen: a true full-bleed poster. It covers the whole screen (behind the notch / status area too), is never resized by the browser toolbar coming and going,
+   sits on a constant black page, and its pictures / videos are GPU layers, so no coloured strip can show or flicker at the top or bottom. Presentation only. */
+html.ev-on, html.ev-on body { background: #000 !important; overflow: hidden; overscroll-behavior: none; }
+html body .ev-screen { position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: auto; height: auto; min-height: 100vh; min-height: 100lvh; margin: 0; padding: 0; border: 0;
+  background-color: #000; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transform: translateZ(0); }
+html body .ev-screen .wsstage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.ev-screen .wl { will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.ev-screen .wl-in img, .ev-screen .wl-in video { background: #000; transform: translateZ(0); backface-visibility: hidden; -webkit-backface-visibility: hidden; image-rendering: auto; }
+.ev-screen .wl-in video { -webkit-appearance: none; appearance: none; }
+.ev-screen video::-webkit-media-controls, .ev-screen video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
+html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+</style>
+<script id="den-ev-fullscreen">
+(function () {
+  'use strict';
+  /* Launched welcome screen -> real full screen. "Launch event" already asks for it, but a reload, a resume or a blocked first request leaves the browser bars on screen,
+     and browsers only allow full screen from a tap. So: the first tap / key press on a launched welcome screen that is not yet full screen turns it on (Android, iPad, desktop).
+     If the person leaves full screen themselves it stays off until the next launch. iPhone Safari has no page full-screen API, and no web page can hide the clock / status bar
+     there; in the installed Home Screen app the picture already runs underneath it (the status bar is translucent). No storage, cookies, tokens or network. */
+  var root = document.documentElement, body = document.body; if (!body) return;
+  var dismissed = false, wasLive = false, enteredByUs = false;
+  function live() { var e = document.getElementById('evScreen'); return !!(e && !e.hidden && body.classList.contains('ev-live') && body.getAttribute('data-screen') === 'landing'); }
+  function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function requestFs() {
+    var f = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen; if (!f) return;
+    try { var p = f.call(root, { navigationUI: 'hide' }); if (p && p.then) p.then(function () { enteredByUs = true; }, function () { /* blocked: the next tap tries again */ }); else enteredByUs = true; } catch (e) { /* ignore */ }
+  }
+  function onGesture() { if (live() && !fsEl() && !dismissed) requestFs(); }
+  ['click', 'touchend', 'pointerup', 'keydown'].forEach(function (t) { document.addEventListener(t, onGesture, { capture: true, passive: true }); });
+  function onFsChange() {
+    if (!fsEl() && enteredByUs && live()) dismissed = true;                    // the person left full screen on purpose
+    if (!fsEl()) enteredByUs = false;
+    try { if (live()) window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+  }
+  document.addEventListener('fullscreenchange', onFsChange); document.addEventListener('webkitfullscreenchange', onFsChange);
+  function sync() {
+    var l = live();
+    root.classList.toggle('ev-on', l);                                          // constant black page + no scroll while the poster is showing
+    if (l && !wasLive) dismissed = false;                                       // a fresh launch always goes full screen again
+    if (!l && wasLive && fsEl() && enteredByUs) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { /* ignore */ } }
+    wasLive = l;
+  }
+  try {
+    var mo = new MutationObserver(sync);
+    mo.observe(body, { attributes: true, attributeFilter: ['class', 'data-screen'] });
+    var ev = document.getElementById('evScreen'); if (ev) mo.observe(ev, { attributes: true, attributeFilter: ['hidden'] });
+  } catch (e) { /* ignore */ }
+  window.addEventListener('pageshow', sync); document.addEventListener('visibilitychange', sync);
+  sync();
+  if (typeof window.__denEvFsTest === 'function') window.__denEvFsTest({ live: live, onGesture: onGesture, sync: sync, state: function () { return { dismissed: dismissed, wasLive: wasLive, enteredByUs: enteredByUs }; } });
 })();
 </script>
 </body></html>
