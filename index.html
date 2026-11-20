@@ -11821,6 +11821,63 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   run();
 })();
 </script>
+<script id="denViewportFix">
+/* iPhone / iPad Home Screen app: on launch WebKit can keep a stale, too-short layout viewport, so every page stops ~30px above the bottom edge (a coloured strip) until the device is rotated.
+   Rotating makes WebKit measure the screen again; this does the same thing without rotating: it re-applies the viewport tag (tiny, instant, invisible) right after launch, on resume,
+   and until the measured heights agree. Home Screen app on iOS only. No storage, cookies, network or login state is touched. */
+(function () {
+  var ua = navigator.userAgent || '', ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var standalone = function () { return navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); };
+  if (!ios) return;
+  var busy = false, tries = 0, timers = [];
+  function metas() { return document.querySelectorAll('meta[name="viewport"]'); }
+  function canon() { var m = metas()[0]; if (!m) return ''; if (!m.getAttribute('data-den-vp')) m.setAttribute('data-den-vp', m.getAttribute('content') || 'width=device-width,initial-scale=1,viewport-fit=cover'); return m.getAttribute('data-den-vp'); }
+  function lvh() { var d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; document.body.appendChild(d); var h = d.getBoundingClientRect().height; d.remove(); return h; }
+  function short() { try { var h = lvh(), v = window.visualViewport ? window.visualViewport.height : innerHeight; return Math.abs(h - innerHeight) > 6 || Math.abs(v - innerHeight) > 6; } catch (e) { return false; } }
+  function nudge() {
+    if (busy || !standalone() || !document.body) return; busy = true;
+    var base = canon(), ms = metas();
+    try {
+      for (var i = 0; i < ms.length; i++) ms[i].setAttribute('content', base + ',maximum-scale=1');
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          try { var live = document.body.classList.contains('ev-live') && document.getElementById('evScreen') && !document.getElementById('evScreen').hidden; for (var j = 0; j < ms.length; j++) ms[j].setAttribute('content', live ? 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover' : base); } catch (e) {}
+          try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+          busy = false;
+        }, 60);
+      });
+    } catch (e) { busy = false; }
+  }
+  function run() { timers.forEach(clearTimeout); timers = []; tries = 0; [0, 120, 400, 900, 1800, 3200].forEach(function (t) { timers.push(setTimeout(function () { if (tries < 8) { tries++; nudge(); } }, t)); }); }
+  function boot() { run(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  window.addEventListener('load', run); window.addEventListener('pageshow', run); window.addEventListener('orientationchange', run);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') run(); });
+  window.addEventListener('focus', run);
+  setInterval(function () { if (standalone() && short() && tries < 20) { tries++; nudge(); } }, 1500);
+})();
+</script>
+<script id="denDiag">
+/* Optional read-out for support: triple-tap the bottom-left corner of the screen to show / hide the screen measurements and the colours behind the page. Local only, nothing is sent or stored. */
+(function () {
+  var taps = [], box = null, tm = 0;
+  function probe(css) { var d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;visibility:hidden;pointer-events:none;' + css; document.body.appendChild(d); var r = d.getBoundingClientRect(); d.remove(); return Math.round(r.height * 10) / 10; }
+  function text() {
+    var cs = getComputedStyle(document.documentElement), vv = window.visualViewport;
+    var m = document.querySelector('meta[name="viewport"]');
+    return ['inner ' + innerWidth + 'x' + innerHeight, 'visual ' + (vv ? Math.round(vv.width) + 'x' + Math.round(vv.height) + ' @' + vv.scale : '-'), 'screen ' + screen.width + 'x' + screen.height, 'outer ' + outerWidth + 'x' + outerHeight,
+      '100vh ' + probe('height:100vh'), '100dvh ' + probe('height:100dvh'), '100svh ' + probe('height:100svh'), '100lvh ' + probe('height:100lvh'),
+      'safe T/B ' + probe('height:env(safe-area-inset-top,0px)') + ' / ' + probe('height:env(safe-area-inset-bottom,0px)'),
+      'standalone ' + (navigator.standalone === true || (matchMedia && matchMedia('(display-mode: standalone)').matches)), 'html bg ' + cs.backgroundColor, 'screen ' + document.body.dataset.screen,
+      'vp ' + (m ? m.content : '-'), 'v220'].join('\n');
+  }
+  function show() { if (box) { box.remove(); box = null; clearInterval(tm); return; } box = document.createElement('pre'); box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:2147483600;margin:0;padding:8px 10px;background:rgba(20,20,20,.88);color:#9fe870;font:12px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre'; document.body.appendChild(box); var u = function () { box.textContent = text(); }; u(); tm = setInterval(u, 700); }
+  document.addEventListener('pointerdown', function (e) {
+    if (e.clientX > 60 || e.clientY < innerHeight - 90) { taps = []; return; }
+    var t = Date.now(); taps = taps.filter(function (x) { return t - x < 1500; }); taps.push(t); if (taps.length >= 3) { taps = []; show(); }
+  }, true);
+})();
+</script>
 <script id="denEvLock">
 /* A launched event / welcome screen is a fixed poster: no pinch-zoom, no double-tap zoom, no ctrl+wheel zoom while it is showing (it cropped and distorted the artwork).
    Everything else in the app keeps normal zoom. Only the viewport tag and a few gesture listeners are touched; no storage, cookies or network. */
@@ -11830,7 +11887,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function setVp(lock) {
     try {
       var m = document.querySelectorAll('meta[name="viewport"]'); if (!m.length) return;
-      if (ORIG === null) ORIG = m[0].getAttribute('content') || 'width=device-width,initial-scale=1,viewport-fit=cover';
+      if (ORIG === null) ORIG = m[0].getAttribute('data-den-vp') || m[0].getAttribute('content') || 'width=device-width,initial-scale=1,viewport-fit=cover';
       var c = lock ? 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover' : ORIG;
       for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c);
     } catch (e) {}
@@ -11886,13 +11943,60 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         var el = els[i]; if (el === root) continue;
         var r = el.getBoundingClientRect(); if (r.width < w * 0.6) continue;                       // toasts, chips and buttons never count
         var cs = getComputedStyle(el), c = hex(cs.backgroundColor); if (c) return c;
+        var gc = gradEdge(cs.backgroundImage); if (gc) return gc;
       }
+      var pg = document.getElementById('pgGrad');                                                 // the page-gradient layer ignores clicks, so a hit-test never lists it
+      if (pg) { var pcs = getComputedStyle(pg); if (pcs.display !== 'none' && parseFloat(pcs.opacity) > 0.5) { var pc = gradEdge(pcs.backgroundImage); if (pc) return pc; } }
     } catch (e) {}
     return '';
   }
+  function gradEdge(bi) {                                                                          // the colour at the BOTTOM end of a vertical linear-gradient
+    if (!bi || bi.indexOf('linear-gradient') < 0) return '';
+    var cols = bi.match(/rgba?\([^)]*\)|#[0-9a-f]{6}\b|#[0-9a-f]{3}\b/gi); if (!cols || !cols.length) return '';
+    var up = /linear-gradient\(\s*(to top|0deg|360deg)/.test(bi), side = /linear-gradient\(\s*(to left|to right|90deg|270deg)/.test(bi);
+    if (side) return '';
+    var list = up ? cols : cols.slice().reverse();
+    for (var i = 0; i < list.length; i++) { var c = hex(list[i]); if (c) return c; }
+    return '';
+  }
+  /* Launched event / welcome screen: the poster is made of picture layers, so a single colour cannot match it. Sample the picture along the bottom edge instead
+     (one pixel per slice of the screen width, from whichever picture layer is on top at that spot) and paint that as a thin gradient under the page. */
+  var scratch = null, edgeKey = '', edgeGrad = '', SLICES = 24;
+  function evEdge() {
+    var b = document.body, ev = document.getElementById('evScreen');
+    if (!b || !ev || ev.hidden || !b.classList.contains('ev-live')) return '';
+    var w = innerWidth, h = innerHeight, imgs = ev.querySelectorAll('.wl-image img'), key = w + 'x' + h;
+    for (var k = 0; k < imgs.length; k++) key += '|' + (imgs[k].currentSrc || imgs[k].src || '').slice(-24) + (imgs[k].complete ? 1 : 0);
+    if (key === edgeKey) return edgeGrad;
+    var out = [], ok = 0;
+    try {
+      scratch = scratch || document.createElement('canvas'); scratch.width = 1; scratch.height = 1; var cx = scratch.getContext('2d', { willReadFrequently: true });
+      var fb = edge() || '#ffffff';
+      for (var i = 0; i < SLICES; i++) {
+        var x = Math.round((i + 0.5) * w / SLICES), col = '';
+        for (var j = imgs.length - 1; j >= 0 && !col; j--) {                                                   // top picture layer first (the layers have pointer-events: none, so a hit-test cannot see them)
+          var el = imgs[j]; if (!el.naturalWidth || !el.complete) continue;
+          var wl = el.closest('.wl'), tr = wl ? wl.style.transform : ''; if (tr && !/^rotate\(-?0(\.0+)?deg\)$/.test(tr)) continue;      // rotated layers are skipped, not guessed
+          var r = el.getBoundingClientRect(), iw = el.naturalWidth, ih = el.naturalHeight, sc; if (x < r.left || x > r.right || h - 2 < r.top || h - 2 > r.bottom) continue; sc = Math.max(r.width / iw, r.height / ih);   // object-fit: cover
+          var ox = (r.width - iw * sc) / 2, oy = (r.height - ih * sc) / 2, px = ((x - r.left) - ox) / sc, py = ((h - 2 - r.top) - oy) / sc;
+          if (px < 0 || py < 0 || px >= iw || py >= ih) continue;
+          cx.clearRect(0, 0, 1, 1); cx.drawImage(el, Math.max(0, Math.min(iw - 3, px - 1)), Math.max(0, Math.min(ih - 3, py - 1)), 3, 3, 0, 0, 1, 1);
+          var d = cx.getImageData(0, 0, 1, 1).data; if (d[3] < 128) continue;
+          col = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')'; ok++;
+        }
+        out.push(col || fb);
+      }
+    } catch (e) { out = []; }                                                                  // a picture from another site cannot be read: the single-colour fallback is used
+    edgeKey = key; edgeGrad = ok && out.length ? 'linear-gradient(to right,' + out.join(',') + ')' : '';
+    return edgeGrad;
+  }
   function paintEdge(fallback) {
-    var c = edge() || fallback || '';
-    if (c && c !== lastEdge) { lastEdge = c; try { var st = document.documentElement.style; st.setProperty('transition', 'background-color .2s linear'); st.setProperty('background-color', c, 'important'); } catch (e) {} }
+    var st = document.documentElement.style, g = evEdge(), c = edge() || fallback || '';
+    if (c && c !== lastEdge) { lastEdge = c; try { st.setProperty('transition', 'background-color .2s linear'); st.setProperty('background-color', c, 'important'); } catch (e) {} }
+    try {
+      if (g) { st.setProperty('background-image', g, 'important'); st.setProperty('background-repeat', 'no-repeat', 'important'); st.setProperty('background-size', '100% 120px', 'important'); st.setProperty('background-position', 'left bottom', 'important'); }
+      else if (st.getPropertyValue('background-image')) { st.removeProperty('background-image'); st.removeProperty('background-repeat'); st.removeProperty('background-size'); st.removeProperty('background-position'); }
+    } catch (e) {}
   }
   function sync() {
     var c = pick(); paintEdge(c);
