@@ -11859,7 +11859,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 </script>
 <script id="denEvH">
 (function () { var r = document.documentElement, t = 0;
-  function f() { try { var h = Math.round(window.innerHeight || 0); if (h > 200) r.style.setProperty('--ev-h', h + 'px'); } catch (e) {} }
+  function f() { try { var h = Math.round(window.innerHeight || 0), d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; (document.body || r).appendChild(d); var L = Math.round(d.getBoundingClientRect().height || 0); d.remove(); if (L > h && L - h < 120) h = L;   /* full screen height, also the part under the strip */
+    if (h > 200) r.style.setProperty('--ev-h', h + 'px'); } catch (e) {} }
   function g() { f(); clearTimeout(t); t = setTimeout(f, 250); }
   f(); ['resize', 'orientationchange', 'pageshow', 'focus'].forEach(function (n) { window.addEventListener(n, g); });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', g);
@@ -11878,7 +11879,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       'safe T/B ' + probe('height:env(safe-area-inset-top,0px)') + ' / ' + probe('height:env(safe-area-inset-bottom,0px)'),
       'nudges ' + (window.__denVp ? window.__denVp.n : 0) + '  edge ' + (window.__denEdge ? window.__denEdge.imgs + ' imgs / ' + window.__denEdge.hits + ' hits' : '-'), 'viewport ' + (Math.abs(innerHeight - probe('height:100lvh')) > 6 ? 'SHORT' : 'ok'),
       'standalone ' + (navigator.standalone === true || (matchMedia && matchMedia('(display-mode: standalone)').matches)), 'html bg ' + cs.backgroundColor, 'screen ' + document.body.dataset.screen,
-      'vp ' + (m ? m.content : '-'), 'v223'].join('\n');
+      'vp ' + (m ? m.content : '-'), 'v225'].join('\n');
   }
   function show() { if (box) { box.remove(); box = null; clearInterval(tm); return; } box = document.createElement('pre'); box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:2147483600;margin:0;padding:8px 10px;background:rgba(20,20,20,.88);color:#9fe870;font:12px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre'; document.body.appendChild(box); var u = function () { box.textContent = text(); }; u(); tm = setInterval(u, 700); }
   document.addEventListener('pointerdown', function (e) {
@@ -12004,7 +12005,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     var st = document.documentElement.style, g = evEdge(), c = edge() || fallback || '';
     if (c && c !== lastEdge) { lastEdge = c; try { st.setProperty('transition', 'background-color .2s linear'); st.setProperty('background-color', c, 'important'); } catch (e) {} }
     try {
-      if (g) { st.setProperty('background-image', g, 'important'); st.setProperty('background-repeat', 'no-repeat', 'important'); st.setProperty('background-size', '100% 120px', 'important'); st.setProperty('background-position', 'left bottom', 'important'); }
+      if (g) { st.setProperty('background-image', g, 'important'); st.setProperty('background-repeat', 'repeat-y', 'important'); st.setProperty('background-size', '100% 8px', 'important'); st.setProperty('background-position', 'left top', 'important');   /* the bottom strip lies outside the page box but inside the canvas: a column-colour tile that repeats downward paints it with the poster's own edge colours */ }
       else if (st.getPropertyValue('background-image')) { st.removeProperty('background-image'); st.removeProperty('background-repeat'); st.removeProperty('background-size'); st.removeProperty('background-position'); }
     } catch (e) {}
   }
