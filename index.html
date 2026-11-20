@@ -7704,6 +7704,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       show('result');
       try { startPrinting(); } catch (e) { try { console.warn('startPrinting', e); $('toolbar').classList.add('is-ready'); } catch (e2) {} }
       try { prWarm(); } catch (e) { /* iPhone / iPad: build the one-page print file now so Print opens instantly; optional */ }
+      try { prWarmDesk(); } catch (e) { /* computers / Android: build the print sheet now so Print opens instantly; optional */ }
       try { prAutoRun(); } catch (e) { /* auto-print is optional and never blocks the result */ }
     } catch (err) {
       try { console.error('enterResult failed', err); } catch (e) {}
@@ -7977,6 +7978,19 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     bc.addEventListener('click', close);
     card.append(h, t, bp, bo, bc); box.appendChild(card); document.body.appendChild(box);
   }
+  /* Draws the strip onto the hidden #printSheet and sets the exact @page paper size. Returns the object URL (or '' on failure). Used by Print and by the pre-warm below. */
+  async function prSheet(canvas, pw, ph, copies) {
+    PRD.ready = false;                                              // the sheet is about to hold something else: the pre-warmed copy no longer applies until prWarmDesk() rebuilds it
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png')); if (!blob) return '';
+    const url = URL.createObjectURL(blob), sheet = $('printSheet'); sheet.innerHTML = '';
+    for (let i = 0; i < copies; i++) { const im = new Image(); im.src = url; im.alt = ''; sheet.appendChild(im); }
+    await Promise.all([...sheet.children].map((im) => im.decode().catch(() => {})));
+    let st = document.getElementById('printSize'); if (!st) { st = document.createElement('style'); st.id = 'printSize'; }
+    document.body.appendChild(st);                                  // always the LAST stylesheet in the page: the app's own <style> blocks sit inside <body>, and a later @page wins, so the real paper size is used (appended to <head> it lost to the static rules)
+    const pgs = `@page { size: ${pw.toFixed(4)}in ${ph.toFixed(4)}in; margin: 0; }`;                          // top level (Safari / iOS) and again inside @media print (older engines)
+    st.textContent = `${pgs} @media print { ${pgs} #printSheet img { display: block !important; width: ${pw.toFixed(4)}in !important; height: ${ph.toFixed(4)}in !important; max-width: none !important; max-height: none !important; object-fit: fill !important; margin: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; break-after: page; page-break-after: always; } #printSheet img:last-child { break-after: auto; page-break-after: auto; } }`;
+    return url;
+  }
   async function prPrintCanvas(canvas, pw, ph, copies) {
     if (isIOSDevice()) {
       try {
@@ -7989,14 +8003,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         }
       } catch (e) { /* could not build the PDF: use the normal print dialog below */ }
     }
-    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png')); if (!blob) { toast('Could not prepare the print. Please try again.'); return false; }
-    const url = URL.createObjectURL(blob), sheet = $('printSheet'); sheet.innerHTML = '';
-    for (let i = 0; i < copies; i++) { const im = new Image(); im.src = url; im.alt = ''; sheet.appendChild(im); }
-    await Promise.all([...sheet.children].map((im) => im.decode().catch(() => {})));
-    let st = document.getElementById('printSize'); if (!st) { st = document.createElement('style'); st.id = 'printSize'; }
-    document.body.appendChild(st);                                  // always the LAST stylesheet in the page: the app's own <style> blocks sit inside <body>, and a later @page wins, so the real paper size is used (appended to <head> it lost to the static rules)
-    const pgs = `@page { size: ${pw.toFixed(4)}in ${ph.toFixed(4)}in; margin: 0; }`;                          // top level (Safari / iOS) and again inside @media print (older engines)
-    st.textContent = `${pgs} @media print { ${pgs} #printSheet img { display: block !important; width: ${pw.toFixed(4)}in !important; height: ${ph.toFixed(4)}in !important; max-width: none !important; max-height: none !important; object-fit: fill !important; margin: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; break-after: page; page-break-after: always; } #printSheet img:last-child { break-after: auto; page-break-after: auto; } }`;
+    const url = await prSheet(canvas, pw, ph, copies); if (!url) { toast('Could not prepare the print. Please try again.'); return false; }
     try { window.print(); } catch (e) { toast('Printing is not available here. Download the strip and print it from your device.'); }
     setTimeout(() => URL.revokeObjectURL(url), 120000); return true;
   }
@@ -8110,6 +8117,21 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     })();
     PRW.busy = job; return job;
   }
+  /* Computers / Android: the sheet is prepared as soon as the result appears, so Print calls window.print() the instant it is clicked (no compose / decode wait, no popup). */
+  const PRD = { sig: '', url: '', busy: null, ready: false };
+  function prWarmDesk() {
+    if (isIOSDevice() || (!state.finalUrl && !state.sheetBlob)) return Promise.resolve(false);
+    const sig = prWarmSig(); if (PRD.sig === sig && (PRD.ready || PRD.busy)) return PRD.busy || Promise.resolve(true);
+    PRD.sig = sig; PRD.ready = false;
+    const job = (async () => {
+      try {
+        const L = currentLayout(), key = layoutKey(L), r = await prCompose(L, key), url = await prSheet(r.canvas, r.pw, r.ph, 1);
+        if (url && PRD.sig === sig) { const old = PRD.url; PRD.url = url; PRD.ready = true; if (old) setTimeout(() => URL.revokeObjectURL(old), 120000); }
+      } catch (e) { /* Print builds it on demand */ }
+      PRD.busy = null; return PRD.ready && PRD.sig === sig;
+    })();
+    PRD.busy = job; return job;
+  }
   /* Auto-print: once per finished strip, when the final preview has loaded. Same path as the Print button (exact @page paper size, native print window). Signed-in only, like Print Setup. */
   function prAutoRun() {
     if (!PR.autoPrint || document.documentElement.getAttribute('data-auth') !== 'in') return;
@@ -8130,7 +8152,11 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       toast('Getting your print ready…', 1800); const f = await PRW.busy;
       if (f && PRW.blob) { prReadyBox(f, URL.createObjectURL(PRW.blob)); PR.used += 1; return; }   // the tap has passed, so one more tap on Print opens the sheet
     }
+    if (!isIOSDevice() && PRD.ready && PRD.sig === prWarmSig() && $('printSheet').firstChild) {   // ready: the native print dialog opens inside this very click
+      try { window.print(); PR.used += 1; toast(`Choose “${prName(which)}” in the print window, then press Print.`, 5200); return; } catch (e) { /* fall through to the normal path */ }
+    }
     await prRun(which, 1);
+    try { prWarmDesk(); } catch (e) { /* next Print is instant again */ }
   }
 
   function resetAll() {
@@ -17668,6 +17694,16 @@ html[data-look="whimsical"] #whHow { margin-bottom: 0; }
 /* the page colour reaches the very edge, even before the backdrop paints and under the browser toolbar */
 html[data-look="whimsical"][data-circus] { background-color: #0f1d2c; }
 body { min-height: 100vh; min-height: 100dvh; }
+</style>
+<style id="den-bottom-gap">
+/* iPad / iPhone (Safari + Home Screen app): WebKit sometimes leaves a strip (home-bar / toolbar area) under the fixed landing page where only the bare page colour shows,
+   which looked like a cyan-green bar cutting through "How it works". The landing scroller now runs ~64px past the bottom edge (same content box, so nothing moves),
+   and the page colour under that strip is the same cream as the card, so even if the strip is visible it reads as the card continuing. WebKit-only; nothing changes elsewhere. */
+@supports (-webkit-touch-callout: none) {
+  html[data-look="whimsical"]:has(body[data-screen="landing"]) { background-image: linear-gradient(to top, #fdf8ea 0, #fdf8ea 140px, rgba(253, 248, 234, 0) 140px); background-repeat: no-repeat; }
+  body[data-screen="landing"] { bottom: -64px; }
+  body[data-screen="landing"] #screen-landing { height: calc(100vh + 64px); height: calc(100dvh + 64px); min-height: calc(100dvh + 64px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
+}
 </style>
 <style id="den-parallax-css">
 /* Whimsical scroll-driven parallax backdrop (built by den-parallax). Transforms and opacity only, so it stays on the compositor. */
