@@ -11838,7 +11838,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (busy || !standalone() || !document.body) return; busy = true;
     var base = canon(), ms = metas();
     try {
-      for (var i = 0; i < ms.length; i++) ms[i].setAttribute('content', base + ',maximum-scale=1');
+      window.__denVp = window.__denVp || { n: 0 }; window.__denVp.n++;
+      for (var i = 0; i < ms.length; i++) ms[i].setAttribute('content', base.replace('viewport-fit=cover', 'viewport-fit=auto') + ',maximum-scale=1');   // leave and re-enter viewport-fit=cover: WebKit measures the screen again, like a rotation does
       requestAnimationFrame(function () {
         setTimeout(function () {
           try { var live = document.body.classList.contains('ev-live') && document.getElementById('evScreen') && !document.getElementById('evScreen').hidden; for (var j = 0; j < ms.length; j++) ms[j].setAttribute('content', live ? 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover' : base); } catch (e) {}
@@ -11868,8 +11869,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     return ['inner ' + innerWidth + 'x' + innerHeight, 'visual ' + (vv ? Math.round(vv.width) + 'x' + Math.round(vv.height) + ' @' + vv.scale : '-'), 'screen ' + screen.width + 'x' + screen.height, 'outer ' + outerWidth + 'x' + outerHeight,
       '100vh ' + probe('height:100vh'), '100dvh ' + probe('height:100dvh'), '100svh ' + probe('height:100svh'), '100lvh ' + probe('height:100lvh'),
       'safe T/B ' + probe('height:env(safe-area-inset-top,0px)') + ' / ' + probe('height:env(safe-area-inset-bottom,0px)'),
+      'nudges ' + (window.__denVp ? window.__denVp.n : 0) + '  edge ' + (window.__denEdge ? window.__denEdge.imgs + ' imgs / ' + window.__denEdge.hits + ' hits' : '-'), 'viewport ' + (Math.abs(innerHeight - probe('height:100lvh')) > 6 ? 'SHORT' : 'ok'),
       'standalone ' + (navigator.standalone === true || (matchMedia && matchMedia('(display-mode: standalone)').matches)), 'html bg ' + cs.backgroundColor, 'screen ' + document.body.dataset.screen,
-      'vp ' + (m ? m.content : '-'), 'v220'].join('\n');
+      'vp ' + (m ? m.content : '-'), 'v221'].join('\n');
   }
   function show() { if (box) { box.remove(); box = null; clearInterval(tm); return; } box = document.createElement('pre'); box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:2147483600;margin:0;padding:8px 10px;background:rgba(20,20,20,.88);color:#9fe870;font:12px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre'; document.body.appendChild(box); var u = function () { box.textContent = text(); }; u(); tm = setInterval(u, 700); }
   document.addEventListener('pointerdown', function (e) {
@@ -11975,8 +11977,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       for (var i = 0; i < SLICES; i++) {
         var x = Math.round((i + 0.5) * w / SLICES), col = '';
         for (var j = imgs.length - 1; j >= 0 && !col; j--) {                                                   // top picture layer first (the layers have pointer-events: none, so a hit-test cannot see them)
-          var el = imgs[j]; if (!el.naturalWidth || !el.complete) continue;
-          var wl = el.closest('.wl'), tr = wl ? wl.style.transform : ''; if (tr && !/^rotate\(-?0(\.0+)?deg\)$/.test(tr)) continue;      // rotated layers are skipped, not guessed
+          var el = imgs[j]; if (!el.naturalWidth) continue;
+          var wl = el.closest('.wl'), tr = wl ? wl.style.transform : '', am = /rotate\((-?[0-9.]+)deg\)/.exec(tr || ''), ang = am ? parseFloat(am[1]) : 0; if (Math.abs(ang) > 1.5) continue;      // clearly rotated layers are skipped, not guessed
           var r = el.getBoundingClientRect(), iw = el.naturalWidth, ih = el.naturalHeight, sc; if (x < r.left || x > r.right || h - 2 < r.top || h - 2 > r.bottom) continue; sc = Math.max(r.width / iw, r.height / ih);   // object-fit: cover
           var ox = (r.width - iw * sc) / 2, oy = (r.height - ih * sc) / 2, px = ((x - r.left) - ox) / sc, py = ((h - 2 - r.top) - oy) / sc;
           if (px < 0 || py < 0 || px >= iw || py >= ih) continue;
@@ -11988,6 +11990,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       }
     } catch (e) { out = []; }                                                                  // a picture from another site cannot be read: the single-colour fallback is used
     edgeKey = key; edgeGrad = ok && out.length ? 'linear-gradient(to right,' + out.join(',') + ')' : '';
+    window.__denEdge = { imgs: imgs.length, hits: ok, slices: out.length };
     return edgeGrad;
   }
   function paintEdge(fallback) {
@@ -17866,6 +17869,7 @@ body { min-height: 100vh; min-height: 100dvh; }
   .ev-screen { width: auto; height: auto; top: 0; right: 0; bottom: 0; left: 0; }   /* Home Screen app: 100dvh stops above the bottom safe area; pinning all four edges covers the whole screen (no strip under the launched event / welcome screen) */
   html[data-look="whimsical"]:has(body[data-screen="landing"]) { background-image: linear-gradient(to top, #fdf8ea 0, #fdf8ea 140px, rgba(253, 248, 234, 0) 140px); background-repeat: no-repeat; }
   body[data-screen="landing"] { bottom: -64px; }
+  @media (display-mode:standalone) { .ev-screen .wsstage { bottom: 34px; height: auto; } }   /* welcome poster stops above the strip so its bottom text stays visible */
   body[data-screen="landing"] #screen-landing { height: calc(100vh + 64px); height: calc(100dvh + 64px); min-height: calc(100dvh + 64px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
 }
 </style>
