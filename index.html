@@ -12259,9 +12259,9 @@ html.reduce-motion .lc-track .choice { transform: none; }
     try {
       if (!ctx) {
         try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* iOS 17+: let the sounds play even with the silent switch on */ }
-        ctx = new AC({ latencyHint: 'interactive' }); master = ctx.createGain(); master.gain.value = 0.9;
+        ctx = new AC({ latencyHint: 'interactive' }); master = ctx.createGain(); master.gain.value = 0.72;   /* v235: more headroom so overlapping sounds cannot crackle */
         ctx.onstatechange = function () { if (ctx.state !== 'running' && ctx.state !== 'closed') { try { ctx.resume(); } catch (e) { /* needs a tap */ } } };
-        var comp = ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination);
+        var comp = ctx.createDynamicsCompressor(); try { comp.threshold.value = -14; comp.knee.value = 14; comp.ratio.value = 8; comp.attack.value = 0.002; comp.release.value = 0.16; } catch (e) { /* defaults */ } master.connect(comp); comp.connect(ctx.destination);
         try { var sb = ctx.createBuffer(1, 1, 22050), ss = ctx.createBufferSource(); ss.buffer = sb; ss.connect(ctx.destination); ss.start(0); } catch (e) { /* silent kick: wakes the audio output on iPhone / iPad at the very first tap */ }
         if (typeof prerenderZoom === 'function') { prerenderZoom(); prerenderTear(); } if (typeof loadPrint === 'function') loadPrint();
         noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -18149,7 +18149,7 @@ html.wh-px .wh-foot { background: rgba(251, 245, 229, .7); border-radius: 28px; 
   window.addEventListener('orientationchange', onResize, { passive: true });
   doc.addEventListener('visibilitychange', function () { if (!doc.hidden) kick(); });
   new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-look'] });
-  function watchBody() { new MutationObserver(function () { resync(); }).observe(doc.body, { attributes: true, attributeFilter: ['data-screen'] }); }
+  function watchBody() { new MutationObserver(function () { resync(); cur = target; paint(true); /* v235: jump straight to the right place when the page changes; it used to slide there from wherever the last page left it, which looked like the backdrop sitting at the bottom */ }).observe(doc.body, { attributes: true, attributeFilter: ['data-screen'] }); }
   function start() { var go = function () { watchBody(); lastW = innerWidth; lastH = innerHeight; sync(); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 700 }); else setTimeout(go, 120); }   // after the first paint, so the page opens before the parallax layers are built
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
   window.DenParallax = { progress: function () { return cur; }, set: function (p) { target = clamp(p, 0, 1); cur = target; paint(true); } };
