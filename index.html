@@ -19237,8 +19237,9 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
 <style id="den-tall-css">
 /* html.den-tall (Home Screen app whose layout viewport is shorter than the screen): every page is laid out at the full screen height as absolute content, not fixed, so nothing is clipped short and no strip shows.
    Before the script runs, 100lvh is used, so the very first paint is already full height (no top / bottom flash). */
-html.den-tall, html.den-tall body { height: var(--ev-h, 100lvh); min-height: var(--ev-h, 100lvh); overflow: hidden; }
-html.den-tall body[data-screen="landing"], html.den-tall body[data-screen="capture"] { position: absolute !important; top: 0; left: 0; right: 0; bottom: auto; width: 100%; height: var(--ev-h, 100lvh); }
+html.den-tall, html.den-tall body { min-height: var(--ev-h, 100lvh); }   /* v234: only the minimum, so setup / edit / result / capture keep scrolling normally */
+html.den-tall:has(body[data-screen="landing"]), html.den-tall body[data-screen="landing"] { height: var(--ev-h, 100lvh); overflow: hidden; }   /* the landing page scrolls inside #screen-landing, so only it is locked */
+html.den-tall body[data-screen="landing"], html.den-tall body[data-screen="capture"] { position: absolute !important; top: 0; left: 0; right: 0; bottom: auto; width: 100%; height: var(--ev-h, 100lvh); }   /* capture stays exactly as in v233 (it never scrolls the document) */
 html.den-tall body[data-screen="landing"] #screen-landing { height: var(--ev-h, 100lvh); min-height: var(--ev-h, 100lvh); }
 html.den-tall body .ev-screen { position: absolute; top: 0; left: 0; right: 0; bottom: auto; width: 100%; height: var(--ev-h, 100lvh); min-height: var(--ev-h, 100lvh); }
 html.den-tall .ev-brand { position: absolute; }
