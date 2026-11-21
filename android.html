@@ -117,8 +117,9 @@ footer a{color:var(--sky-dd);margin:0 8px}
 <script>
 /* The APK file sits next to this page on your own site: /denphotobooth.apk (same GitHub repo, same Cloudflare Pages). The button and the QR code both use it.
    To host the file somewhere else later (e.g. Cloudflare R2), put the full https:// link here instead. */
-var APK_URL = "/denphotobooth.apk";
-var APK_SIZE_LABEL = "About 1 MB";   /* shown under the button: change if your file size changes */
+var APK_URL = "/den-photo-booth-1.1.apk";            /* version 1.1 (com.dencollective.denphotobooth) */
+var APK_FALLBACK = "/denphotobooth.apk";            /* same file under the older name: used automatically if the first link cannot be reached */
+var APK_SIZE_LABEL = "Version 1.1 · about 1 MB";   /* shown under the button: change if your file size changes */
 </script>
 <script>
 /* QR encoder: Kazuhiko Arase "QRCode for JavaScript" (MIT licence, http://www.d-project.com/). "QR Code" is a registered trademark of DENSO WAVE INCORPORATED. */
@@ -1395,9 +1396,18 @@ window.DenQR={make:function(text,level){var q=new (R('index'))(-1,R('QRErrorCorr
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (m[r][c]) d += 'M' + (c + q) + ' ' + (r + q) + 'h1v1h-1z';
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + size + ' ' + size + '" shape-rendering="crispEdges" aria-hidden="true"><rect width="' + size + '" height="' + size + '" fill="#fff"/><path d="' + d + '" fill="#1f3347"/></svg>';
   }
+  var bad = false;
+  function setUrl(u) { APK_URL = u; btn.href = u; try { box.innerHTML = qrSvg(u); } catch (e) { box.textContent = 'QR code unavailable. Use the download button.'; } }
+  function absu(u) { try { return new URL(u, location.origin).href; } catch (e) { return u; } }
+  function okFile(u) {                                                 // the file must really be there and really be a file, not an error or a web page
+    return fetch(u, { method: 'HEAD', cache: 'no-store' }).then(function (r) { var t = (r.headers.get('content-type') || '').toLowerCase(); return r.ok && t.indexOf('text/html') < 0; }, function () { return false; });
+  }
   if (ready) {
-    btn.href = APK_URL; btn.removeAttribute('aria-disabled');
-    try { box.innerHTML = qrSvg(APK_URL); } catch (e) { box.textContent = 'QR code unavailable. Use the download button.'; }
+    btn.removeAttribute('aria-disabled'); setUrl(APK_URL);
+    try {
+      okFile(APK_URL).then(function (ok) { if (ok) return; return okFile(absu(typeof APK_FALLBACK === 'string' ? APK_FALLBACK : '')).then(function (ok2) { if (ok2) setUrl(absu(APK_FALLBACK)); else { bad = true; $('notReady').textContent = 'The download is temporarily unavailable. Please try again in a few minutes.'; $('notReady').hidden = false; } }); });
+    } catch (e) { /* the normal link stays */ }
+    btn.addEventListener('click', function (e) { if (bad) { e.preventDefault(); $('notReady').hidden = false; } });
     if (!isAndroid) $('dlLead').innerHTML = 'You are not on an Android phone. <b>Scan the QR code</b> with your Android phone, or open this page on it.';
   } else {
     $('notReady').hidden = false; $('copyBtn').hidden = true; box.textContent = 'Coming soon';
