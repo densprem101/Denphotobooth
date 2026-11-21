@@ -11864,7 +11864,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 </script>
 <script id="denEvH">
 (function () { var r = document.documentElement, t = 0;
-  function f() { try { var h = Math.round(window.innerHeight || 0), d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; (document.body || r).appendChild(d); var L = Math.round(d.getBoundingClientRect().height || 0); d.remove(); if (L > h) h = L; var sc = window.screen || {}, sh = Math.max(sc.width || 0, sc.height || 0), sm = Math.min(sc.width || 0, sc.height || 0), w = Math.round(window.innerWidth || 0), sT = (w > (window.innerHeight || 0)) ? sm : sh; if (sT > h && sT - h < 200 && (navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches))) h = sT; r.style.setProperty('--ev-w', Math.max(w, 1) + 'px');   /* full screen height, also the part under the strip */
+  function f() { try { var h = Math.round(window.innerHeight || 0), d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; (document.body || r).appendChild(d); var L = Math.round(d.getBoundingClientRect().height || 0); d.remove(); if (L > h && L - h < 120) h = L;   /* full screen height, also the part under the strip */
     if (h > 200) r.style.setProperty('--ev-h', h + 'px'); } catch (e) {} }
   function g() { f(); clearTimeout(t); t = setTimeout(f, 250); }
   f(); ['resize', 'orientationchange', 'pageshow', 'focus'].forEach(function (n) { window.addEventListener(n, g); });
@@ -12028,8 +12028,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     return null;
   }
   function paintEdge(fallback) {
-    if (evOn()) { clearEdge(); return; }                                                           // a launched welcome screen is full bleed: no strip to match, so nothing to repaint or flicker
-    var st = document.documentElement.style, f = null; try { f = evFull(); } catch (e) {}
+    var st = document.documentElement.style, f = null; try { if (!evOn()) f = evFull(); } catch (e) {}   /* welcome screen: the strip under the page (outside the layout viewport) is painted with the poster's own bottom-edge colours, never black */
     if (f && f.src) {
       var k = f.src.length + '|' + f.src.slice(-32) + '|' + f.size + '|' + f.pos;
       if (k !== fbKey) { fbKey = k; try { st.setProperty('background-image', 'url("' + f.src.replace(/"/g, '%22') + '")', 'important'); st.setProperty('background-repeat', 'no-repeat', 'important'); st.setProperty('background-size', f.size, 'important'); st.setProperty('background-position', f.pos, 'important'); } catch (e) {} }
@@ -19176,8 +19175,9 @@ html[data-look="whimsical"][data-circus] ::selection { background: #ffd58a; colo
 <style id="den-ev-fullscreen">
 /* Launched welcome screen: a true full-bleed poster. It covers the whole screen (behind the notch / status area too), is never resized by the browser toolbar coming and going,
    sits on a constant black page, and its pictures / videos are GPU layers, so no coloured strip can show or flicker at the top or bottom. Presentation only. */
-html.ev-on, html.ev-on body { background: #000 !important; overflow: hidden; overscroll-behavior: none; }
-html body .ev-screen { position: fixed; top: 0; right: 0; bottom: auto; left: 0; width: 100%; height: var(--ev-h, 100lvh); min-height: 100vh; min-height: 100lvh; margin: 0; padding: 0; border: 0;
+html.ev-on body { background: transparent !important; }
+html.ev-on, html.ev-on body {  overflow: hidden; overscroll-behavior: none; }
+html body .ev-screen { position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: auto; height: auto; min-height: 0; margin: 0; padding: 0; border: 0;
   background-color: #000; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transform: translateZ(0); }
 html body .ev-screen .wsstage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; min-height: 100%; }
 .ev-screen .wl-in img, .ev-screen .wl-in video { object-fit: cover; width: 100%; height: 100%; }
@@ -19227,12 +19227,4 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   if (typeof window.__denEvFsTest === 'function') window.__denEvFsTest({ live: live, onGesture: onGesture, sync: sync, state: function () { return { dismissed: dismissed, wasLive: wasLive, enteredByUs: enteredByUs }; } });
 })();
 </script>
-<style id="den-fullheight">
-/* Every page (home, capture, setup, result, welcome) is as tall as the real screen, not the shorter "dynamic" viewport, so no bare page-colour strip can show under it on iPad / iPhone.
-   --ev-h is measured by #denEvH (largest of innerHeight, 100lvh and, in the installed app, the physical screen). Presentation only. */
-body[data-screen="landing"], body[data-screen="capture"] { top: 0; bottom: auto; height: var(--ev-h, 100lvh); min-height: 100vh; min-height: 100lvh; }
-html:has(body[data-screen="setup"]), body[data-screen="setup"], html:has(body[data-screen="result"]), body[data-screen="result"] { min-height: var(--ev-h, 100lvh); }
-body[data-screen="landing"] #screen-landing { height: var(--ev-h, 100lvh); min-height: var(--ev-h, 100lvh); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
-body[data-screen="capture"] .screen { min-height: var(--ev-h, 100lvh); }
-</style>
 </body></html>
