@@ -11868,9 +11868,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
      In that case html gets .den-tall and the pages are laid out at the full 100lvh height as normal (absolute) content, which WebKit does draw all the way down. Sizing only; nothing stored or sent. */
   function f() { try { var h = Math.round(window.innerHeight || 0), d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none'; (document.body || r).appendChild(d); var L = Math.round(d.getBoundingClientRect().height || 0); d.remove();
     var st = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches), H = h;
-    if (L > h && L - h < 120) H = L;
-    if (H > 200) r.style.setProperty('--ev-h', H + 'px');
-    r.classList.toggle('den-tall', !!st && H - h >= 6); } catch (e) {} }
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    /* v233: measured from 100lvh only (it does not change when the layout changes). Measuring innerHeight made the class switch itself off once the page was tall, which put it back, and so on: that was the flicker. Once on, it stays on. */
+    if (st && ios && L > 200) { H = L; if (r.getAttribute('data-den-h') !== String(H)) { r.setAttribute('data-den-h', String(H)); r.style.setProperty('--ev-h', H + 'px'); } if (!r.classList.contains('den-tall')) r.classList.add('den-tall'); }
+    else { if (L > h && L - h < 120) H = L; if (H > 200 && r.getAttribute('data-den-h') !== String(H)) { r.setAttribute('data-den-h', String(H)); r.style.setProperty('--ev-h', H + 'px'); } } } catch (e) {} }
   function g() { f(); clearTimeout(t); t = setTimeout(f, 250); }
   f(); ['resize', 'orientationchange', 'pageshow', 'focus'].forEach(function (n) { window.addEventListener(n, g); });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', g);
@@ -12033,7 +12034,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     return null;
   }
   function paintEdge(fallback) {
-    var st = document.documentElement.style, f = null; try { if (!evOn()) f = evFull(); } catch (e) {}   /* welcome screen: the strip under the page (outside the layout viewport) is painted with the poster's own bottom-edge colours, never black */
+    if (evOn()) { clearEdge(); return; }   /* v233: the welcome screen fills the whole screen, so nothing is sampled or repainted (no flicker source) */
+    var st = document.documentElement.style, f = null; try { f = evFull(); } catch (e) {}
     if (f && f.src) {
       var k = f.src.length + '|' + f.src.slice(-32) + '|' + f.size + '|' + f.pos;
       if (k !== fbKey) { fbKey = k; try { st.setProperty('background-image', 'url("' + f.src.replace(/"/g, '%22') + '")', 'important'); st.setProperty('background-repeat', 'no-repeat', 'important'); st.setProperty('background-size', f.size, 'important'); st.setProperty('background-position', f.pos, 'important'); } catch (e) {} }
