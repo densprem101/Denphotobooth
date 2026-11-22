@@ -3665,6 +3665,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 <div id="printSheet" aria-hidden="true"><img id="printImg" alt="" /></div>
 
 <script src="/assets/den-art.js?v=202"></script>
+<script>/* "Vintage Booth": black-border 4-photo strip, drawn at its own 356 x 1800 proportions (artwork with 4 transparent photo windows) */
+(function () { var A = (window.DEN_ASSETS = window.DEN_ASSETS || {}); A.strips = A.strips || {};
+  A.strips.vintbooth = { a: "data:image/webp;base64,UklGRgICAABXRUJQVlA4TPUBAAAvY8HBEYcQEWbatg1ulxHkHKvFLMm9yAJyJEmKpGHs7Rn9td27H+eiR/Rfkdu2Dbs+0aPQAmfEg//4752zI6zxTWrZoxqlfs/a5jGqMW/1W9bUtVGNbvqGeZS5a8Ia3VyOL7ePbVracf9ydR0Cdln65j68HfvIf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/zHf/xHZQE3Z1PmLq1zWGu+fep8nhF31hNxL0AZdy8U7+D/OPmfFdmRcFZke6nflRVZvPfsjjJ3bb5dke1je6fsioz/+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//+I//XhnwX8P/rsi6acu3K7KPFXBoPfNWAw4GqNSIwxfif/Ri+I9e7CrkuzMh3wEL+S7jLXInt65DYnfL7/nvrRj/8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//8R//PazwX4P5rsgifhudIn7jnyJ+q6IyfnOlAh78H+eTRVdk/P+zKl8m/6xK/uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uM//uO/Z3r8/7Mq78d/ViX/8d/bZicA", s: [356, 1800], h: [[0.50281, 0.13361, 0.85393, 0.22833, 0], [0.50281, 0.37806, 0.85393, 0.22833, 0], [0.50281, 0.62194, 0.85393, 0.22833, 0], [0.50281, 0.86639, 0.85393, 0.22833, 0]] };
+})();</script>
 <style id="den-idcard-css">
 /* Student ID Card maker: screen colours come from the active theme variables */
 #denId{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;background:var(--paper,#fbf7ee);color:var(--ink,#3f4b5c);overscroll-behavior:none;font:inherit}
@@ -4218,6 +4222,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
        editText: user-editable text (text = default)   title / sub: fixed receipt texts (not editable) */
     templates: [
       { id: 'plain', label: 'Plain', deco: 'none' },
+      { id: 'vintbooth', label: 'Vintage Booth', paint: 'strips', art: true, counts: [4], noHeader: true, ownDate: true, lockBg: true, bg: '#FFFFFF', frame: '#000000', accent: 'ink', ar: 356 / 1800, autoFilter: 'vintage' },
       { id: 'y2kpc', label: 'Y2K Computer', paint: 'strips', art: true, counts: [4], noHeader: true, ownDate: true, lockBg: true, bg: '#3C8DE0', frame: '#1A1A1A', accent: 'ink' },
       { id: 'iphonegal', label: 'iPhone Gallery Strip', paint: 'strips', art: true, counts: [4], noHeader: true, ownDate: true, lockBg: true, bg: '#C8C8CA', frame: '#1A1A1A', accent: 'ink' },
       { id: 'denphoto', label: 'Den Photobooth', paint: 'strips', art: true, counts: [4], noHeader: true, ownDate: true, lockBg: true, bg: '#53110F', frame: '#1A1A1A', accent: 'ink' },
@@ -4343,10 +4348,19 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     rendering: false,
   };
 
-  const currentLayout = () => CONFIG.layouts.find((l) => l.id === state.layoutId) || CONFIG.layouts[0];
+  const baseLayout = () => CONFIG.layouts.find((l) => l.id === state.layoutId) || CONFIG.layouts[0];
+  /* A template that carries its own proportions ("ar", width / height) is drawn at exactly those proportions instead of being squeezed into 2 x 6 in. Only for the standard strips it fits. */
+  const arLayouts = {};
+  const tplLayout = (L, t) => {
+    if (!L || L.custom || L.widthIn || !t || !t.ar || (t.counts && !t.counts.includes(L.count))) return L;
+    const key = L.id + '|' + t.id; if (arLayouts[key]) return arLayouts[key];
+    const h = L.heightIn || CONFIG.strip.heightIn;
+    return (arLayouts[key] = Object.assign({}, L, { widthIn: Math.round(h * t.ar * 1e4) / 1e4, heightIn: h, arTpl: t.id, baseL: L }));
+  };
+  const currentLayout = () => tplLayout(baseLayout(), getTemplate(state.templateId));
 
   /** Pixel geometry of the strip at a given dpi. */
-  const layoutKey = (l) => (l && (l.custom || l.widthIn) ? l.id : '2x6');          // print settings: all standard strips share one paper
+  const layoutKey = (l) => (l && (l.custom || (l.widthIn && !l.arTpl)) ? l.id : '2x6');          // print settings: all standard strips share one paper
   /* Template scoping: a custom template belongs to exactly ONE layout. Standard strips each get their own key (std:two / std:three / std:four). */
   const tplKey = (l) => (l && l.custom ? l.id : 'std:' + ((l && l.id) || CONFIG.defaults.layout));
   const isStdKey = (k) => typeof k === 'string' && k.indexOf('std:') === 0;
@@ -4725,7 +4739,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
      Shown only where a wide front camera is likely: a track that reports a zoom-out range, or an iPhone / iPad.
      Real zoom-out is used when the browser exposes it; otherwise 'normal' is a light center crop and 'wide' the full frame. */
   const camWide = { on: false, zoom: null };
-  const NORMAL_CROP = 1.18;
+  const NORMAL_CROP = 1.4;   /* v237: 'normal' view = a stronger centre crop so the front camera is not too wide (was 1.18) */
   const isAppleTouch = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   /* Gesture zoom (touchless pinch): a 1x..3x digital crop that multiplies whatever the lens setting is, so it works on top of 0.5x / normal alike. */
   const PZ = { prev: -1, tgt: 1, cur: 1, tagT: 0, two: 0, lock: 0, miss: 0, run: null, prevRun: null, pc: null };
@@ -4770,8 +4784,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     let caps = {}; try { caps = (track && track.getCapabilities && track.getCapabilities()) || {}; } catch (e) { /* ignore */ }
     camWide.on = false; camWide.zoom = null; state.gestZoom = 1; PZ.tgt = PZ.cur = 1; PZ.prev = -1; pzReset(); camZ(1);
     let ok = false;
-    if (caps.zoom && caps.zoom.min < 1) { camWide.zoom = caps.zoom; ok = true; }
-    else if (isAppleTouch()) { ok = true; camZ(NORMAL_CROP); }
+    if (caps.zoom && caps.zoom.min < 1) { camWide.zoom = caps.zoom; ok = true; camZ(NORMAL_CROP); }   // real zoom: normal lens (1x) plus the same centre crop
+    else if (isAppleTouch() || /Android|Mobile/i.test(navigator.userAgent)) { ok = true; camZ(NORMAL_CROP); }
     $('camZoom').hidden = !ok; syncCamZoomUI();
   }
   /* Two-finger pinch on the live camera = smooth digital zoom 1x..3x (the same zoom the hand-pinch uses, so photos, live frames and the preview all match).
@@ -4802,7 +4816,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (camWide.zoom) {
       const track = state.stream && state.stream.getVideoTracks()[0];
       try { await track.applyConstraints({ advanced: [{ zoom: camWide.on ? camWide.zoom.min : 1 }] }); } catch (e) { camWide.on = !camWide.on; }
-    } else camZ(camWide.on ? 1 : NORMAL_CROP);
+    }
+    camZ(camWide.on ? 1 : NORMAL_CROP);
     syncCamZoomUI();
   }
 
@@ -7156,7 +7171,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       if (A[id].L) { S.L = []; A[id].L.forEach((src, i) => { const im = new Image(); im.onload = () => { S.L[i] = im; try { renderTemplateMinis(); if (state.screen === 'edit') schedulePreview(); } catch (e) {} }; im.src = src; }); }
     });
   })();
-  const STP_FOOT = { scrap: { y: 0.975 }, memrep: { y: 0.978 }, filmreel: { y: 0.982, x: 0.95, al: 'right', mw: 0.26 }, stampmem: { y: 0.982, x: 0.94, al: 'right', ink: '#3A2A22' }, cutegham: { y: 0.982 }, ringlove: { y: 0.985 }, memticket: { y: 0.869, mw: 0.62, sz: 0.06 }, redbooth: { y: 0.987 }, filmroll: { y: 0.986, mw: 0.6 }, y2kpc: { skip: true }, iphonegal: { skip: true }, denphoto: { skip: true }, collab: { skip: true }, denim: { skip: true }, pressed: { skip: true } };
+  const STP_FOOT = { vintbooth: { skip: true }, scrap: { y: 0.975 }, memrep: { y: 0.978 }, filmreel: { y: 0.982, x: 0.95, al: 'right', mw: 0.26 }, stampmem: { y: 0.982, x: 0.94, al: 'right', ink: '#3A2A22' }, cutegham: { y: 0.982 }, ringlove: { y: 0.985 }, memticket: { y: 0.869, mw: 0.62, sz: 0.06 }, redbooth: { y: 0.987 }, filmroll: { y: 0.986, mw: 0.6 }, y2kpc: { skip: true }, iphonegal: { skip: true }, denphoto: { skip: true }, collab: { skip: true }, denim: { skip: true }, pressed: { skip: true } };
   PAINT.strips = {
     back(ctx, g, v, dpi, c) {
       const S = STP[v.tpl]; if (!S) return;
@@ -7197,7 +7212,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   /** Assemble the whole strip on a canvas at the requested dpi. */
   function renderStrip(canvas, dpi, overrides) {
     const v = Object.assign(currentView(), overrides || {});
-    const layout = v.layout, g = geometry(layout, dpi), k = layoutK(layout), dk = dpi * k, px = (n) => n * dk, tpl = getTemplate(v.tpl);
+    const tpl = getTemplate(v.tpl), layout = tplLayout(v.layout.baseL || v.layout, tpl), g = geometry(layout, dpi), k = layoutK(layout), dk = dpi * k, px = (n) => n * dk;
     if (tpl.lockBg) { v.bg = null; v.color = tpl.bg; v.frame = tpl.frame; }          // locked-background templates ignore color / photo choices
     canvas.width = g.W; canvas.height = g.H;
     const ctx = canvas.getContext('2d');
@@ -7397,8 +7412,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   }
 
   function onTemplateChange(id) {
-    state.templateId = id; if (id === 'hirono') state.hQuotes = null;
+    const prevId = state.templateId; state.templateId = id; if (id === 'hirono') state.hQuotes = null;
     const t = getTemplate(id);
+    if (t.autoFilter && prevId !== id && CONFIG.filters.some((f) => f.id === t.autoFilter)) { state.filterId = t.autoFilter; try { applyCamFilter(); } catch (e) { /* camera not open */ } }   // e.g. Vintage Booth starts with the VINTAGE look; the user can still change it
     if (id !== 'plain') { state.stripColor = t.bg; state.frameColor = t.frame; }
     else state.frameColor = null;
     syncEditControls();
@@ -7597,7 +7613,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 
   /* Templates with fixed artwork list the photo counts they support (counts: [3, 4]); others fit any layout. */
   const TPL_VISIBLE = 4;                       // templates shown before "Show more"
-  const templateFits = (t, layout) => (t.custom ? t.layoutKey === tplKey(layout) : t.layouts ? t.layouts.includes(layout.id) : layout.custom || layout.widthIn ? t.id === 'plain' : !t.counts || t.counts.includes(layout.count));
+  const templateFits = (t, layout) => (t.custom ? t.layoutKey === tplKey(layout) : t.layouts ? t.layouts.includes(layout.id) : layout.custom || (layout.widthIn && !layout.arTpl) ? t.id === 'plain' : !t.counts || t.counts.includes(layout.count));
   function layoutTemplateVisibility() {
     const L = currentLayout(), byId = {};
     document.querySelectorAll('#templateGrid .tpl:not(.tpl--add), #templateGridMore .tpl:not(.tpl--add)').forEach((el) => { const inp = el.querySelector('input[name="template"]'); if (inp) byId[inp.value] = el; });
@@ -9849,7 +9865,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }
     if (token !== ctToken) return;
     CONFIG.templates = CONFIG.templates.filter((t) => !t.custom);
-    CONFIG.templates.splice(Math.max(0, CONFIG.templates.findIndex((t) => t.id === 'plain')) + 1, 0, ...made);
+    CONFIG.templates.splice(Math.max(0, CONFIG.templates.findIndex((t) => t.id === 'plain'), CONFIG.templates.findIndex((t) => t.id === 'vintbooth')) + 1, 0, ...made);
     try { buildLayoutChoices(); } catch (e) { /* setup not ready yet */ }                       // previews pick up the user's templates
     if (!CONFIG.templates.some((t) => t.id === keep)) { state.templateId = 'plain'; state.frameColor = null; }
     rebuildTemplateGrid(); updateTplBadge();
