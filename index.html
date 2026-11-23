@@ -4357,10 +4357,18 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const h = L.heightIn || CONFIG.strip.heightIn;
     return (arLayouts[key] = Object.assign({}, L, { widthIn: Math.round(h * t.ar * 1e4) / 1e4, heightIn: h, arTpl: t.id, baseL: L }));
   };
-  const currentLayout = () => tplLayout(baseLayout(), getTemplate(state.templateId));
+  /* Long-distance (online) booth: the standard 2 / 3 / 4-photo strips are drawn 3 x 6 in instead of 2 x 6 in, so each frame is wider and both people fit side by side. Margins and type keep their 2 x 6 size (layoutK). The normal booth is never touched. */
+  const isOnlineBooth = () => !!(document.body && document.body.classList.contains('db-on'));
+  const onlineLayout = (L) => {
+    if (!L || L.custom || L.widthIn || L.id === 'idcard' || !L.count || !isOnlineBooth()) return L;
+    const key = L.id + '|3x6'; if (arLayouts[key]) return arLayouts[key];
+    return (arLayouts[key] = Object.assign({}, L, { widthIn: 3, heightIn: L.heightIn || CONFIG.strip.heightIn, arTpl: '3x6', onl: true, baseL: L }));
+  };
+  const effLayout = (L, t) => { const a = tplLayout(L, t); return a !== L ? a : onlineLayout(L); };
+  const currentLayout = () => effLayout(baseLayout(), getTemplate(state.templateId));
 
   /** Pixel geometry of the strip at a given dpi. */
-  const layoutKey = (l) => (l && (l.custom || (l.widthIn && !l.arTpl)) ? l.id : '2x6');          // print settings: all standard strips share one paper
+  const layoutKey = (l) => (l && l.onl ? '3x6' : l && (l.custom || (l.widthIn && !l.arTpl)) ? l.id : '2x6');          // print settings: all standard strips share one paper
   /* Template scoping: a custom template belongs to exactly ONE layout. Standard strips each get their own key (std:two / std:three / std:four). */
   const tplKey = (l) => (l && l.custom ? l.id : 'std:' + ((l && l.id) || CONFIG.defaults.layout));
   const isStdKey = (k) => typeof k === 'string' && k.indexOf('std:') === 0;
@@ -4371,7 +4379,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const fr = (rec && rec.fr) || {}, own = ['two', 'three', 'four'].find((id) => fr[id] && fr[id].length);
     return 'std:' + (own || 'four');
   };
-  const layoutK = (l) => ((l && l.widthIn) || CONFIG.strip.widthIn) / CONFIG.strip.widthIn;     // margins and type scale with the strip width
+  const layoutK = (l) => (l && l.onl ? 1 : ((l && l.widthIn) || CONFIG.strip.widthIn) / CONFIG.strip.widthIn);     // margins and type scale with the strip width
   /** Export resolution: 600 dpi, lowered only for very large custom sizes so the canvas stays printable. */
   const outDpi = (l = currentLayout()) => {
     const wi = (l && l.widthIn) || CONFIG.strip.widthIn, hi = (l && l.heightIn) || CONFIG.strip.heightIn;
@@ -7018,17 +7026,28 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   }
   const vFont = (w, it) => (z) => `${it ? 'italic ' : ''}${w} ${z}px ${CONFIG.strip.fonts.brand}`;
   const vTitle = (ctx, s, x, y, z, col, sh, it) => { ctx.font = vFont(800, it)(z); if (sh) txt(ctx, s, x + z * 0.05, y + z * 0.06, vFont(800, it)(z), sh, 'left'); txt(ctx, s, x, y, vFont(800, it)(z), col, 'left'); };
+  /* 3 x 6 online strips: a two-line staggered title is measured and centred as one block, so it never hugs one side */
+  const vStag = (ctx, W, a, b, y1, y2, z1, z2, c1, c2, sh1, sh2, it, off) => {
+    ctx.font = vFont(800, it)(z1); const w1 = ctx.measureText(a).width; ctx.font = vFont(800, it)(z2); const w2 = ctx.measureText(b).width;
+    let o = w1 * off, bw = Math.max(w1, o + w2); const f = Math.min(1, W * 0.88 / bw); z1 *= f; z2 *= f; o *= f; bw *= f;
+    const x = (W - bw) / 2; vTitle(ctx, a, x, y1, z1, c1, sh1, it); vTitle(ctx, b, x + o, y2, z2, c2, sh2, it);
+  };
   const vTop = (g) => g.frames[0].y, vCh = (g) => g.H - g.bottomY, vFb = (g, i) => g.frames[Math.min(i, g.frames.length - 1)].y + g.frames[Math.min(i, g.frames.length - 1)].h;
 
   PAINT.golden = {
     back(ctx, g) { vSpeck(ctx, 0, g.frames[1].y, g.W * 0.2, g.H * 0.4, 70, g.W * 0.006, 7); vSpeck(ctx, g.W * 0.8, g.frames[1].y, g.W * 0.2, g.H * 0.4, 70, g.W * 0.006, 19); },
     front(ctx, g, v, dpi, c) {
       const px = c.px, F = CONFIG.strip.fonts, t = vTop(g), ch = vCh(g), W = g.W, hs = Math.min(px(0.075), t * 0.26);
-      txt(ctx, 'DATE', px(0.1), t * 0.32, `700 ${hs}px ${F.caption}`, VG.k, 'left'); txt(ctx, formatDate(), px(0.55), t * 0.32, `400 ${hs}px ${F.date}`, VG.k, 'left');
-      txt(ctx, 'SUBJECT', px(0.1), t * 0.62, `700 ${hs}px ${F.caption}`, VG.k, 'left'); txt(ctx, 'Den Collective', px(0.55), t * 0.62, `400 ${hs}px ${F.date}`, VG.k, 'left');
+      txt(ctx, 'DATE', px(0.1), t * 0.32, `700 ${hs}px ${F.caption}`, VG.k, 'left'); txt(ctx, formatDate(), (v.layout && v.layout.onl ? W * 0.3 : px(0.55)), t * 0.32, `400 ${hs}px ${F.date}`, VG.k, 'left');
+      txt(ctx, 'SUBJECT', px(0.1), t * 0.62, `700 ${hs}px ${F.caption}`, VG.k, 'left'); txt(ctx, 'Den Collective', (v.layout && v.layout.onl ? W * 0.3 : px(0.55)), t * 0.62, `400 ${hs}px ${F.date}`, VG.k, 'left');
       vDots(ctx, px(0.1), t * 0.86, Math.floor(W / px(0.1)) - 2, 1, Math.max(1, px(0.008)), VG.g); vSpark(ctx, W - px(0.2), t * 0.4, Math.min(px(0.2), t * 0.4), VG.d);
       vBadge(ctx, 'STAY|GROOVY', px(0.34), vFb(g, 1), -0.07, px(0.5), px(0.25), VG.g, VG.o, vFont(800)); vDaisy(ctx, W - px(0.22), g.frames[0].y + g.frames[0].h * 0.8, px(0.17));
       vCam(ctx, W - px(0.36), vFb(g, g.frames.length - 2) - px(0.02), px(0.3));
+      if (v.layout && v.layout.onl) {
+        const z = Math.min(px(0.5), ch * 0.34); vStag(ctx, W, 'Golden', 'Days', g.bottomY + ch * 0.28, g.bottomY + ch * 0.58, z, z * 0.95, VG.g, VG.o, null, null, false, 0.5);
+        txt(ctx, 'Classic Never Goes Out of Style', W / 2, g.bottomY + ch * 0.8, fitFont(ctx, 'Classic Never Goes Out of Style', z * 0.3, vFont(500, true), W * 0.8), VG.k); vMeta(ctx, g, v, px, g.H - ch * 0.07, VG.k);
+        return;
+      }
       const z = Math.min(px(0.5), ch * 0.5); vTitle(ctx, 'Golden', px(0.1), g.bottomY + ch * 0.36, z, VG.g); vTitle(ctx, 'Days', W * 0.36, g.bottomY + ch * 0.74, z * 0.95, VG.o);
       txt(ctx, 'Classic Never Goes Out of Style', W / 2, g.H - ch * 0.1, fitFont(ctx, 'Classic Never Goes Out of Style', z * 0.3, vFont(500, true), W * 0.8), VG.k); vMeta(ctx, g, v, px, g.H - ch * 0.26, VG.k);
     },
@@ -7037,24 +7056,29 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     back(ctx, g) { ctx.save(); vWave(ctx, g.frames[0].y * 0.18, g.W, g.W * 0.012, VG.o, g.W * 0.008); vWave(ctx, g.frames[0].y * 0.3, g.W, g.W * 0.012, VG.g, g.W * 0.008); ctx.restore(); },
     front(ctx, g, v, dpi, c) {
       const px = c.px, W = g.W, t = vTop(g), ch = vCh(g);
-      const z = Math.min(px(0.42), t * 0.5); vTitle(ctx, 'Timeless', px(0.08), t * 0.55, z, VG.g, 'rgba(0,0,0,0.28)', true); vTitle(ctx, 'Beauty!', W * 0.3, t * 0.9, z * 0.9, VG.o, 'rgba(0,0,0,0.2)', true);
+      const z = Math.min(px(0.42), t * 0.5), on = v.layout && v.layout.onl;
+      if (on) vStag(ctx, W, 'Timeless', 'Beauty!', t * 0.5, t * 0.88, z, z * 0.9, VG.g, VG.o, 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.2)', true, 0.4);
+      else { vTitle(ctx, 'Timeless', px(0.08), t * 0.55, z, VG.g, 'rgba(0,0,0,0.28)', true); vTitle(ctx, 'Beauty!', W * 0.3, t * 0.9, z * 0.9, VG.o, 'rgba(0,0,0,0.2)', true); }
       vDaisy(ctx, W - px(0.22), vFb(g, 0) - g.frames[0].h * 0.1, px(0.17)); vPhone(ctx, px(0.28), vFb(g, 0) + px(0.06), px(0.3));
       vBadge(ctx, 'GOOD|VIBES', W - px(0.38), vFb(g, g.frames.length - 2) - px(0.02), 0.03, px(0.5), px(0.3), VG.o, VG.d, vFont(800));
       vDots(ctx, px(0.1), vFb(g, g.frames.length - 2) - px(0.2), 5, 4, Math.max(1, px(0.008)), VG.k);
-      txt(ctx, 'Darling, Let\'s Go', W / 2, g.bottomY + ch * 0.36, fitFont(ctx, 'Darling, Let\'s Go', px(0.2), vFont(500, true), W * 0.7), VG.k); txt(ctx, 'Back in Time', W / 2, g.bottomY + ch * 0.62, fitFont(ctx, 'Back in Time', px(0.2), vFont(500, true), W * 0.7), VG.k);
+      const dz = on ? Math.min(px(0.2), ch * 0.2) : px(0.2), d1 = on ? 0.3 : 0.36, d2 = on ? 0.56 : 0.62;
+      txt(ctx, 'Darling, Let\'s Go', W / 2, g.bottomY + ch * d1, fitFont(ctx, 'Darling, Let\'s Go', dz, vFont(500, true), W * 0.7), VG.k); txt(ctx, 'Back in Time', W / 2, g.bottomY + ch * d2, fitFont(ctx, 'Back in Time', dz, vFont(500, true), W * 0.7), VG.k);
       vMeta(ctx, g, v, px, g.H - ch * 0.12, VG.k);
     },
   };
   PAINT.vintage = {
     back(ctx, g, v, dpi, c) {
-      const W = g.W, t = vTop(g), ch = vCh(g), q = W / 9; vCheck(ctx, 0, 0, W, Math.min(t * 0.3, q), 9); vCheck(ctx, 0, g.H - Math.min(ch * 0.22, q), W, Math.min(ch * 0.22, q), 9);
+      const W = g.W, t = vTop(g), ch = vCh(g), nn = v.layout && v.layout.onl ? 14 : 9, q = W / nn; vCheck(ctx, 0, 0, W, Math.min(t * 0.3, q), nn); vCheck(ctx, 0, g.H - Math.min(ch * 0.22, q), W, Math.min(ch * 0.22, q), nn);
       ctx.save(); ['rgba(130,160,110,0.28)', 'rgba(222,170,110,0.25)'].forEach((col, i) => { ctx.beginPath(); ctx.ellipse(W * (i ? 0.85 : 0.2), g.H * (i ? 0.55 : 0.3), W * 0.22, g.H * 0.1, 0.5, 0, 7); ctx.fillStyle = col; ctx.fill(); }); ctx.restore();
     },
     front(ctx, g, v, dpi, c) {
       const px = c.px, W = g.W, t = vTop(g), ch = vCh(g), z = Math.min(px(0.3), t * 0.34);
-      vTitle(ctx, 'VINTAGE', W * 0.22, t * 0.52, z, VG.d); vTitle(ctx, 'SOUL!', W * 0.36, t * 0.84, z * 0.9, VG.o);
+      if (v.layout && v.layout.onl) vStag(ctx, W, 'VINTAGE', 'SOUL!', t * 0.68, t * 0.9, z * 0.6, z * 0.5, VG.d, VG.o, null, null, false, 0.3);
+      else { vTitle(ctx, 'VINTAGE', W * 0.22, t * 0.52, z, VG.d); vTitle(ctx, 'SOUL!', W * 0.36, t * 0.84, z * 0.9, VG.o); }
       vRainbow(ctx, px(0.34), vFb(g, 0) - px(0.02), px(0.3)); vVan(ctx, W - px(0.38), vFb(g, g.frames.length - 2) - px(0.06), px(0.34)); vRecord(ctx, px(0.26), g.bottomY + px(0.12), px(0.26));
-      vBadge(ctx, 'ANTIQUE|AESTHETIC', W - px(0.5), g.bottomY + ch * 0.45, -0.04, px(0.78), Math.min(px(0.28), ch * 0.5), VG.c, VG.d, vFont(800)); vMeta(ctx, g, v, px, g.H - ch * 0.34, VG.d);
+      if (v.layout && v.layout.onl) { vBadge(ctx, 'ANTIQUE|AESTHETIC', W / 2, g.bottomY + ch * 0.34, -0.04, px(0.78), Math.min(px(0.28), ch * 0.46), VG.c, VG.d, vFont(800)); vMeta(ctx, g, v, px, g.H - ch * 0.34, VG.d); }
+      else { vBadge(ctx, 'ANTIQUE|AESTHETIC', W - px(0.5), g.bottomY + ch * 0.45, -0.04, px(0.78), Math.min(px(0.28), ch * 0.5), VG.c, VG.d, vFont(800)); vMeta(ctx, g, v, px, g.H - ch * 0.34, VG.d); }
     },
   };
 
@@ -7172,9 +7196,50 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     });
   })();
   const STP_FOOT = { vintbooth: { skip: true }, scrap: { y: 0.975 }, memrep: { y: 0.978 }, filmreel: { y: 0.982, x: 0.95, al: 'right', mw: 0.26 }, stampmem: { y: 0.982, x: 0.94, al: 'right', ink: '#3A2A22' }, cutegham: { y: 0.982 }, ringlove: { y: 0.985 }, memticket: { y: 0.869, mw: 0.62, sz: 0.06 }, redbooth: { y: 0.987 }, filmroll: { y: 0.986, mw: 0.6 }, y2kpc: { skip: true }, iphonegal: { skip: true }, denphoto: { skip: true }, collab: { skip: true }, denim: { skip: true }, pressed: { skip: true } };
+
+  /* ---- 3 x 6 (long-distance booth) versions of the 1:3 artwork strips ----
+     The art is never stretched as a whole. One narrow band of columns that holds the least detail (found automatically, preferring columns that run through every photo window) is widened instead;
+     everything left and right of it is copied 1:1, and the photo windows are re-measured to match. Templates whose windows are tilted, or whose art is not 1:3, are not offered there. */
+  const STP_W = {};
+  const STP_NOWIDE = { denphoto: 1, collab: 1 };   // their artwork carries a title / logo that runs across the whole width: any widening would distort the lettering
+  function stpWideOk(id) {
+    const S = STP[id]; if (!S || !S.h || !S.h.length || STP_NOWIDE[id]) return false;
+    const sz = S.s || [720, 2160];
+    return Math.abs(sz[0] * 3 - sz[1]) <= sz[1] * 0.02 && S.h.every((r) => Math.abs(r[4] || 0) < 1e-3);
+  }
+  function stpWide(id) {
+    if (STP_W[id] !== undefined) return STP_W[id];
+    const S = STP[id]; if (!stpWideOk(id)) return (STP_W[id] = null);
+    const AS = ((window.DEN_ASSETS || {}).strips || {})[id] || {};
+    if (!S.art || !S.art.naturalWidth || (AS.t && !S.tex) || (AS.L && (!S.L || AS.L.some((_, i) => !S.L[i])))) return null;     // images still loading: try again on the next draw
+    const AW = (S.s || [720, 2160])[0], AH = (S.s || [720, 2160])[1], NW = Math.round(AH / 2), extra = NW - AW;
+    const cv = document.createElement('canvas'); cv.width = AW; cv.height = AH; const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(S.art, 0, 0, AW, AH);
+    let d; try { d = cx.getImageData(0, 0, AW, AH).data; } catch (e) { return (STP_W[id] = null); }
+    const rects = S.h.map((r) => [r[0] * AW - (r[2] * AW) / 2, r[0] * AW + (r[2] * AW) / 2]);
+    const col = new Float64Array(AW);
+    for (let x = 1; x < AW - 1; x++) {
+      let c = 0; for (let y = 0; y < AH; y += 2) { const i = (y * AW + x) * 4, j = i + 4; c += Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]) + 2 * Math.abs(d[i + 3] - d[j + 3]); }
+      let miss = 0; for (const r of rects) if (x < r[0] || x > r[1]) miss++;
+      col[x] = c + miss * 60 * AH;
+    }
+    const wb = Math.round(AW * 0.12); let best = -1, bc = Infinity, run = 0;
+    for (let x = 0; x < wb; x++) run += col[x];
+    for (let x = 0; x + wb <= AW; x++) { if (x > 0) run += col[x + wb - 1] - col[x - 1]; if (x >= AW * 0.1 && x + wb <= AW * 0.9 && run < bc) { bc = run; best = x; } }
+    if (best < 0) return (STP_W[id] = null);
+    const b0 = best, b1 = best + wb, f = (x) => (x <= b0 ? x : x >= b1 ? x + extra : b0 + (x - b0) * ((wb + extra) / wb));
+    const build = (img) => {
+      if (!img) return null; const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height, k = iw / AW, out = document.createElement('canvas'); out.width = Math.round(NW * k); out.height = ih; const o = out.getContext('2d'); o.imageSmoothingQuality = 'high';
+      o.drawImage(img, 0, 0, b0 * k, ih, 0, 0, b0 * k, ih);
+      o.drawImage(img, b0 * k, 0, wb * k, ih, b0 * k, 0, (wb + extra) * k, ih);
+      o.drawImage(img, b1 * k, 0, (AW - b1) * k, ih, (b1 + extra) * k, 0, (AW - b1) * k, ih);
+      return out;
+    };
+    const h = S.h.map((r) => { const x0 = f(r[0] * AW - (r[2] * AW) / 2), x1 = f(r[0] * AW + (r[2] * AW) / 2); return [(x0 + x1) / 2 / NW, r[1], (x1 - x0) / NW, r[3], r[4], r[5]]; });
+    return (STP_W[id] = { on: 1, h, s: [NW, AH], art: build(S.art), tex: S.tex ? build(S.tex) : null, L: S.L ? S.L.map((im) => build(im)) : null });
+  }
   PAINT.strips = {
     back(ctx, g, v, dpi, c) {
-      const S = STP[v.tpl]; if (!S) return;
+      const S = (v.layout && v.layout.onl && stpWide(v.tpl)) || STP[v.tpl]; if (!S) return;
       if (S.tex) { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(S.tex, 0, 0, g.W, g.H); ctx.restore(); }
       const AW = (S.s && S.s[0]) || 720, AH = (S.s && S.s[1]) || 2160, filter = getFilter(v.filterId);
       S.h.forEach((r, i) => {
@@ -7188,12 +7253,12 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       });
     },
     front(ctx, g, v, dpi, c) {
-      const S = STP[v.tpl]; if (!S) return;
+      const S = (v.layout && v.layout.onl && stpWide(v.tpl)) || STP[v.tpl]; if (!S) return;
       if (S.art) ctx.drawImage(S.art, 0, 0, g.W, g.H);
       const px = c.px, F = CONFIG.strip.fonts, f = STP_FOOT[v.tpl] || { y: 0.978 }, ink = f.ink || c.ink;
       if (f.skip) return;
       const line = [(v.text || '').trim(), v.showDate ? formatDate() : ''].filter(Boolean).join('  ·  ');
-      if (line) { const mw = g.W * (f.mw || 0.8); txt(ctx, line, f.x ? g.W * f.x : g.W / 2, g.H * f.y, fitFont(ctx, line, px(f.sz || 0.07), (z) => `600 ${z}px ${F.caption}`, mw), ink, f.al || 'center'); }
+      if (line) { const kk = S.on ? 2 / 3 : 1, mw = g.W * kk * (f.mw || 0.8); const leftSide = S.on && v.tpl === 'filmreel'; txt(ctx, line, leftSide ? g.W * 0.05 : f.x ? g.W - (1 - f.x) * g.W * kk : g.W / 2, g.H * f.y, fitFont(ctx, line, px(f.sz || 0.07), (z) => `600 ${z}px ${F.caption}`, mw), ink, leftSide ? 'left' : (f.al || 'center')); }
     },
   };
 
@@ -7212,7 +7277,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   /** Assemble the whole strip on a canvas at the requested dpi. */
   function renderStrip(canvas, dpi, overrides) {
     const v = Object.assign(currentView(), overrides || {});
-    const tpl = getTemplate(v.tpl), layout = tplLayout(v.layout.baseL || v.layout, tpl), g = geometry(layout, dpi), k = layoutK(layout), dk = dpi * k, px = (n) => n * dk;
+    const tpl = getTemplate(v.tpl), layout = effLayout(v.layout.baseL || v.layout, tpl), _vl = (layout.onl ? (v.layout = layout) : 0), g = geometry(layout, dpi), k = layoutK(layout), dk = dpi * k, px = (n) => n * dk;
     if (tpl.lockBg) { v.bg = null; v.color = tpl.bg; v.frame = tpl.frame; }          // locked-background templates ignore color / photo choices
     canvas.width = g.W; canvas.height = g.H;
     const ctx = canvas.getContext('2d');
@@ -7613,7 +7678,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 
   /* Templates with fixed artwork list the photo counts they support (counts: [3, 4]); others fit any layout. */
   const TPL_VISIBLE = 4;                       // templates shown before "Show more"
-  const templateFits = (t, layout) => (t.custom ? t.layoutKey === tplKey(layout) : t.layouts ? t.layouts.includes(layout.id) : layout.custom || (layout.widthIn && !layout.arTpl) ? t.id === 'plain' : !t.counts || t.counts.includes(layout.count));
+  const templateFits = (t, layout) => (layout && layout.onl && (t.custom || (t.art && !(t.paint === 'strips' && stpWideOk(t.id)))) ? false /* 3 x 6 long-distance strip: only templates that redraw to any width, or whose 1:3 artwork can be widened in one quiet band, are offered */ : t.custom ? t.layoutKey === tplKey(layout) : t.layouts ? t.layouts.includes(layout.id) : layout.custom || (layout.widthIn && !layout.arTpl) ? t.id === 'plain' : !t.counts || t.counts.includes(layout.count));
   function layoutTemplateVisibility() {
     const L = currentLayout(), byId = {};
     document.querySelectorAll('#templateGrid .tpl:not(.tpl--add), #templateGridMore .tpl:not(.tpl--add)').forEach((el) => { const inp = el.querySelector('input[name="template"]'); if (inp) byId[inp.value] = el; });
@@ -7835,7 +7900,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
      Browsers cannot silently pick a printer: the system print window (AirPrint on iOS, print service on Android) does that.
      Den formats the page exactly (paper size, scale, offsets, copies, 2-up) so the guest only presses Print.
      ====================================================================== */
-  const PR_PAPER = { '2x6': [2, 6], '4x4': [4, 4], '4x6': [4, 6], A6: [105 / 25.4, 148 / 25.4], '4x8': [4, 8], '5x7': [5, 7], '6x6': [6, 6], '6x8': [6, 8], A5: [148 / 25.4, 210 / 25.4], '6x9': [6, 9], '3.5x5': [3.5, 5], '5x5': [5, 5], Hagaki: [100 / 25.4, 148 / 25.4], A4: [210 / 25.4, 297 / 25.4], Letter: [8.5, 11] };
+  const PR_PAPER = { '2x6': [2, 6], '3x6': [3, 6], '4x4': [4, 4], '4x6': [4, 6], A6: [105 / 25.4, 148 / 25.4], '4x8': [4, 8], '5x7': [5, 7], '6x6': [6, 6], '6x8': [6, 8], A5: [148 / 25.4, 210 / 25.4], '6x9': [6, 9], '3.5x5': [3.5, 5], '5x5': [5, 5], Hagaki: [100 / 25.4, 148 / 25.4], A4: [210 / 25.4, 297 / 25.4], Letter: [8.5, 11] };
   const PR_LBL = { '4x6': '4×6 in (postcard / photo)', '3.5x5': '3.5×5 in (small postcard)', A6: 'A6 · 105×148 mm (ISO postcard)', Hagaki: 'Postcard · 100×148 mm (Hagaki)', A4: 'A4 · 210×297 mm (ISO)', Letter: 'Letter · 8.5×11 in' };
   const PR_DPI = 300, PR_KEY = 'den.print.v1';
   const PR = Object.assign({ conn: 'airprint', main: 'Main printer', second: 'Secondary printer', secOn: false, route: 'layout', scale: 100, dx: 0, dy: 0, maxCopies: 6, maxSession: 0, oneTap: false, autoPrint: false, copies: 1, perLayout: {} },
