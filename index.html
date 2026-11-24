@@ -263,8 +263,38 @@ html[data-look="whimsical"] body:is([data-screen="setup"], [data-screen="capture
       });
     });
   }
-  $('egRetry').addEventListener('click', function () { finished = false; tries = 0; gotNet = false; $('egRetry').hidden = true; stat('Connecting to the photo booth…'); start(); });
-  creplay(); start();                                                                                              // saved copy shows at once while the connection to the booth is made
+  /* 24-hour links (den-v + 32 hex): the files live on the server (Cloudflare R2), so they open any time within 24 hours, with or without the booth screen.
+     Older / fallback links (den-s...) still use the direct booth connection above. */
+  var SV = /^den-v[0-9a-f]{32}$/.test(id), svExp = 0;
+  function svHide() { ['egLiveS', 'egStripS', 'egPhS'].forEach(function (k) { $(k).hidden = true; }); $('egAll').hidden = true; $('egBar').style.display = 'none'; }
+  function svExpired() { finished = true; gen++; svHide(); $('egRetry').hidden = true; $('egEv').textContent = 'Link expired after 24 hours'; D.title = 'Link expired'; stat('Photo links stay available for 24 hours after the photo booth makes them, and this one has passed that time. Please ask the event host about your photos.'); }
+  function svMissing() { finished = true; gen++; svHide(); $('egRetry').hidden = true; $('egEv').textContent = 'Link not found'; stat('We could not find this photo link. Please scan the QR code again.'); }
+  function svUntil() { try { return ' This link stays active until ' + new Date(svExp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + ' (24 hours after it was made).'; } catch (e) { return ''; } }
+  function startServer() {
+    var g = ++gen, got = {}, chain = Promise.resolve(), errs = 0, t0 = Date.now(); finished = false; $('egRetry').hidden = true; stat('Opening your photos…');
+    function getFile(f) {
+      return fetch('/api/share/' + id + '/f/' + encodeURIComponent(f.kind) + '/' + (f.i || 0), { cache: 'no-store' }).then(function (r) { if (r.status === 410) { svExpired(); throw 0; } if (!r.ok) throw 1; return r.blob(); })
+        .then(function (b) { if (g === gen) onFile({ kind: f.kind, i: f.i || 0, name: f.name, type: f.type, data: b }, true); });
+    }
+    function again(ms) { setTimeout(poll, ms); }
+    function fail() { errs++; if (errs > 6) { finished = true; stat('Could not load your photos. Check your internet connection, then try again.'); $('egRetry').hidden = false; return; } again(1500 * errs); }
+    function poll() {
+      if (g !== gen || finished) return;
+      fetch('/api/share/' + id, { cache: 'no-store', headers: { 'X-Den-Cloud': '1' } }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { j.status = r.status; return j; }); }).then(function (j) {
+        if (g !== gen) return;
+        if (j.status === 410) return svExpired(); if (j.status === 404) return svMissing(); if (!j.ok) return fail();
+        errs = 0; gotNet = true; svExp = j.expires_at || svExp;
+        if (!gotMeta) { var m = j.meta || {}; m.event = j.event || ''; onMeta(m, true); }
+        (j.files || []).forEach(function (f) { var k = f.kind + ':' + (f.i || 0); if (have[k] || got[k]) return; got[k] = 1; chain = chain.then(function () { return getFile(f); }).catch(function () { got[k] = 0; }); });
+        if (j.done) { chain.then(function () { if (g !== gen || finished) return; var miss = (j.files || []).some(function (f) { return !have[f.kind + ':' + (f.i || 0)]; }); if (miss) again(1500); else { onDone(true); stat('All set. Tap Download to save your photos.' + svUntil()); } }); }
+        else if (Date.now() - t0 > 600000) { finished = true; stat('The photo booth is still preparing these photos. Please try again in a moment.'); $('egRetry').hidden = false; }
+        else again(2200);
+      }).catch(fail);
+    }
+    poll();
+  }
+  $('egRetry').addEventListener('click', function () { if (SV) { tries = 0; startServer(); return; } finished = false; tries = 0; gotNet = false; $('egRetry').hidden = true; stat('Connecting to the photo booth…'); start(); });
+  if (SV) startServer(); else { creplay(); start(); }                                                                                              // saved copy shows at once while the connection to the booth is made
 })();
 </script>
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px);background:#fbf7ee}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fbf7ee;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
@@ -3526,7 +3556,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     <p class="qr-ev" id="qrEvent"></p>
     <div class="qr-box"><canvas id="qrCv" width="280" height="280" hidden></canvas><p id="qrStatus" role="status">Preparing your gallery…</p></div>
     <p class="qr-url" id="qrUrl"></p>
-    <p>Scan to open your Photo Archive: your final strip, every single photo and your live GIF video. Keep this screen open until your files finish loading on your phone.</p>
+    <p class="qr-ev" id="qrNote" hidden></p>
+    <p id="qrHelp">Scan to open your Photo Archive: your final strip, every single photo and your live GIF video. Keep this screen open until your files finish loading on your phone.</p>
     <button class="btn" type="button" id="qrCopy" hidden><span>Copy link</span></button>
     <button class="btn" type="button" id="qrRetry" hidden><span>Try again</span></button>
     <button class="btn" type="button" id="qrClose"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg><span>Close</span></button>
@@ -8350,7 +8381,40 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       conn.send({ t: 'done' });
     } catch (e) { /* guest left */ }
   }
+  /* 24-hour guest link (Cloudflare R2 + D1): the files are uploaded to our own Worker, so the QR keeps working after this screen is left, reset for the next guest, or closed.
+     No cookies / login are sent or touched (credentials: omit). If the Worker is not reachable or not set up, startShare() falls back to the direct booth connection below. */
+  const shareFetch = (path, o) => fetch('/api/share' + path, Object.assign({ credentials: 'omit', cache: 'no-store' }, o, { headers: Object.assign({ 'X-Den-Cloud': '1' }, (o && o.headers) || {}) }));
+  async function startServerShare() {
+    await sessionAssets(); const b = await shareBuffers(), photos = b.photos.slice(0, 40);
+    const liveExpected = !!state.livePromise && state.photos.some((p) => p && p.frames && p.frames.length > 1), livePr = liveExpected ? sessionLive() : Promise.resolve(null);
+    const meta = { photos: photos.length, live: liveExpected, ar: b.ar, pars: b.pars, files: (b.preview ? 1 : 0) + (b.web ? 1 : 0) + (b.full ? 1 : 0) + photos.length + (liveExpected ? 1 : 0) };
+    const r = await shareFetch('/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: eventName(), meta }) });
+    const c = await r.json().catch(() => ({})); if (!r.ok || !c.ok || !c.token) throw new Error('share_create_' + r.status);
+    state.shareExp = c.expires_at;
+    const put = async (kind, i, name, type, buf) => {
+      for (let k = 0; k < 4; k++) {
+        try { const x = await shareFetch(`/${c.token}/f/${kind}/${i}`, { method: 'PUT', headers: { 'X-Share-Key': c.key, 'X-Share-Name': name, 'Content-Type': type }, body: buf }); if (x.ok) return true; if ([403, 410, 413, 415].includes(x.status)) return false; } catch (e) { /* retry */ }
+        await sleep(800 * (k + 1));
+      }
+      return false;
+    };
+    (async () => {                                                                                     // runs on its own: leaving the final page does not stop it
+      let settled = false, liveSent = !liveExpected; livePr.then(() => { settled = true; });
+      const sendLive = async () => { if (liveSent) return; liveSent = true; const l = await livePr; if (l && l.blob) await put('live', 0, `live.${l.ext}`, MIME[l.ext] || 'image/gif', await blobBuf(l.blob)); };
+      if (b.preview) await put('preview', 0, 'strip-preview.jpg', 'image/jpeg', b.preview);           // same order as before: preview, GIF, light strip, photos, print-quality strip
+      if (liveExpected) await Promise.race([livePr, sleep(1500)]);
+      if (settled) await sendLive();
+      if (b.web) await put('strip-web', 0, 'photo-strip.jpg', 'image/jpeg', b.web);
+      for (let i = 0; i < photos.length; i++) { await put('photo', i, `photo-${i + 1}.jpg`, 'image/jpeg', photos[i]); if (settled) await sendLive(); }
+      await sendLive();
+      if (b.full) await put('strip', 0, 'photo-strip.png', 'image/png', b.full);
+      for (let k = 0; k < 4; k++) { try { const x = await shareFetch(`/${c.token}/done`, { method: 'POST', headers: { 'X-Share-Key': c.key } }); if (x.ok || [403, 410].includes(x.status)) break; } catch (e) { /* retry */ } await sleep(800 * (k + 1)); }
+    })().catch(() => {});
+    state.shareServer = true; return `${location.origin}/?archive=${c.token}`;
+  }
   async function startShare() {
+    state.shareServer = false; state.shareExp = 0;
+    try { return await startServerShare(); } catch (e) { /* offline, or the share route is not on the server yet: use the direct booth link below */ }
     if (state.peer) { try { state.peer.destroy(); } catch (e) { /* ignore */ } state.peer = null; }
     await loadPeerLib(); await sessionAssets(); shareBuffers().catch(() => {});                       // get everything ready before the first scan
     Promise.resolve(state.livePromise).then(() => sessionLive()).then(async (l) => { if (l && l.blob && state.liveBufFor !== l.blob) { state.liveBuf = await blobBuf(l.blob); state.liveBufFor = l.blob; } }).catch(() => {});   // the animated GIF too
@@ -8369,7 +8433,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   async function openQr(force) {
     if (!eventName()) return;
     qrOpener = qrOpener || document.activeElement; $('qrModal').hidden = false; $('qrEvent').textContent = eventName();
-    $('qrCv').hidden = true; $('qrUrl').textContent = ''; $('qrCopy').hidden = true; $('qrRetry').hidden = true; $('qrStatus').hidden = false; $('qrStatus').textContent = 'Getting your QR ready…';
+    $('qrCv').hidden = true; $('qrUrl').textContent = ''; $('qrNote').hidden = true; $('qrCopy').hidden = true; $('qrRetry').hidden = true; $('qrStatus').hidden = false; $('qrStatus').textContent = 'Getting your QR ready…';
     try {
       const url = await qrPrepare(force); await loadQrLib();
       const q = window.qrcode(0, 'M'); q.addData(url); q.make();
@@ -8377,6 +8441,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height); x.fillStyle = '#000';
       for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect((c + m) * sc, (r + m) * sc, sc, sc);
       cv.hidden = false; $('qrStatus').hidden = true; $('qrUrl').textContent = url; $('qrCopy').hidden = false;
+      const nt = $('qrNote'); if (state.shareServer && state.shareExp) { try { nt.textContent = 'Active for 24 hours, until ' + new Date(state.shareExp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + '. Guests can still scan it after this screen is reset.'; } catch (e) { nt.textContent = 'Active for 24 hours.'; } nt.hidden = false; } else nt.hidden = true;
+      $('qrHelp').textContent = state.shareServer ? 'Scan to open your Photo Archive: your final strip, every single photo and your live GIF video. Your photos are saved online for 24 hours, so you can scan any time before then.' : 'Scan to open your Photo Archive: your final strip, every single photo and your live GIF video. Keep this screen open until your files finish loading on your phone.';
     } catch (e) {
       $('qrStatus').textContent = 'Could not start sharing. Check the internet connection, then try again.'; $('qrRetry').hidden = false;
       if (state.galleryUrl) { $('qrUrl').textContent = state.galleryUrl; }

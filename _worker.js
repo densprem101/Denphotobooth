@@ -444,6 +444,87 @@ async function boothRoute(req, env, url, path) {
   return fail(404, 'not_found');
 }
 
+
+/* ---------- 6c. Guest share links (the QR on the final page): kept for 24 hours, independent of the booth screen ----------
+   The session's strip / photos / live GIF are uploaded to R2 (share/<token>/...) and indexed in D1 (tables shares + share_files, created by
+   themselves the first time they are needed, in their OWN step so they can never affect sign-in). expires_at = created + 24 h.
+   Past that time the viewer shows "expired" and a tidy-up deletes the R2 files. This never reads or writes the login cookie, never touches
+   users / records (the saved Photo Archive) and never needs an account: the secret write key below is what protects an upload. ---------- */
+const SHARE = { ttlMs: 86400e3, perHour: 300, maxFile: 40 * 1024 * 1024, maxTotal: 150 * 1024 * 1024, maxFiles: 60, tombMs: 30 * 86400e3,
+  kinds: new Set(['preview', 'strip-web', 'strip', 'photo', 'live']), types: new Set(['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime']) };
+let shareReady = null;
+const ensureShareSchema = (env) => (shareReady = shareReady || env.DB.batch([
+  env.DB.prepare('CREATE TABLE IF NOT EXISTS shares (token TEXT PRIMARY KEY, wkey TEXT, event TEXT, meta TEXT, created INTEGER, expires_at INTEGER, done INTEGER DEFAULT 0, bytes INTEGER DEFAULT 0, purged INTEGER DEFAULT 0)'),
+  env.DB.prepare('CREATE TABLE IF NOT EXISTS share_files (token TEXT NOT NULL, kind TEXT NOT NULL, idx INTEGER NOT NULL, name TEXT, type TEXT, size INTEGER, seq INTEGER, PRIMARY KEY (token, kind, idx))'),
+  env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_shares_exp ON shares (expires_at)')]).catch((e) => { shareReady = null; throw e; }));
+const shareObj = (t, kind, i) => `share/${t}/${kind}.${i}`;
+async function shareSweep(env) {                       // deletes ONLY expired guest-share files; the row stays (as a tiny "expired" marker) for 30 days, then goes too
+  const t = now();
+  try {
+    const rows = (await env.DB.prepare('SELECT token FROM shares WHERE expires_at < ? AND purged = 0 LIMIT 20').bind(t).all()).results || [];
+    for (const r of rows) {
+      const fs = (await env.DB.prepare('SELECT kind, idx FROM share_files WHERE token = ?').bind(r.token).all()).results || [];
+      if (fs.length) await env.FILES.delete(fs.map((f) => shareObj(r.token, f.kind, f.idx)));
+      await env.DB.batch([env.DB.prepare('DELETE FROM share_files WHERE token = ?').bind(r.token), env.DB.prepare("UPDATE shares SET purged = 1, meta = '', bytes = 0 WHERE token = ?").bind(r.token)]);
+    }
+    await env.DB.prepare('DELETE FROM shares WHERE expires_at < ?').bind(t - SHARE.tombMs).run();
+  } catch (e) { log('share_sweep_failed', { message: String(e && e.message) }); }
+}
+const shareMeta = (b) => {                              // only plain numbers / flags are kept from what the booth sends
+  const m = b && typeof b.meta === 'object' && b.meta ? b.meta : {}, pars = Array.isArray(m.pars) ? m.pars.slice(0, 40).map((v) => Math.round((Number(v) || 1.3) * 1e4) / 1e4) : [];
+  return { photos: Math.max(0, Math.min(40, parseInt(m.photos, 10) || 0)), live: !!m.live, ar: Math.round((Number(m.ar) || 0) * 1e4) / 1e4, pars, files: Math.max(0, Math.min(SHARE.maxFiles, parseInt(m.files, 10) || 0)) };
+};
+async function shareRoute(req, env, url, path) {
+  try {
+    await ensureShareSchema(env);
+    const t = now();
+    if (path === '/api/share/create' && req.method === 'POST') {
+      if (!sameSiteOk(req, url)) return fail(403, 'forbidden');
+      if (await boothLimit(env, 'sc:' + (netOf(req) || '?'), SHARE.perHour, 3600e3)) return fail(429, 'too_many');
+      let body = {}; try { body = await req.json(); } catch (e) { return fail(400, 'bad_json'); }
+      if (Math.random() < 0.1) await shareSweep(env);
+      const id = hex(rand(16)), key = hex(rand(16)), exp = t + SHARE.ttlMs, ev = String((body && body.event) || '').slice(0, 80);
+      await env.DB.prepare('INSERT INTO shares (token, wkey, event, meta, created, expires_at, done, bytes, purged) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)').bind(id, key, ev, JSON.stringify(shareMeta(body)), t, exp).run();
+      return json({ ok: true, token: 'den-v' + id, key, expires_at: exp, ttl: Math.round(SHARE.ttlMs / 1000) });
+    }
+    const m = /^\/api\/share\/den-v([0-9a-f]{32})(?:\/(done)|\/f\/([a-z-]{1,12})\/(\d{1,2}))?$/.exec(path); if (!m) return fail(404, 'not_found');
+    const id = m[1], row = await env.DB.prepare('SELECT * FROM shares WHERE token = ?').bind(id).first();
+    if (!row) return fail(404, 'no_share');
+    const gone = t >= row.expires_at || !!row.purged;
+    if (gone) { if (Math.random() < 0.05) await shareSweep(env); return fail(410, 'expired'); }                 // the clean "Link expired after 24 hours" case
+    const keyOk = String(req.headers.get('X-Share-Key') || '') === row.wkey;
+    if (m[3] === undefined && m[2] === undefined) {                                                             // GET /api/share/<token>: what is ready so far
+      if (req.method !== 'GET') return fail(405, 'method');
+      const files = ((await env.DB.prepare('SELECT kind, idx, name, type, size FROM share_files WHERE token = ? ORDER BY seq').bind(id).all()).results || []).map((f) => ({ kind: f.kind, i: f.idx, name: f.name, type: f.type, size: f.size }));
+      let meta = {}; try { meta = JSON.parse(row.meta || '{}'); } catch (e) { /* empty */ }
+      return json({ ok: true, event: row.event || '', meta, files, done: !!row.done, expires_at: row.expires_at, now: t });
+    }
+    if (m[2] === 'done') {
+      if (req.method !== 'POST') return fail(405, 'method'); if (!sameSiteOk(req, url)) return fail(403, 'forbidden'); if (!keyOk) return fail(403, 'bad_key');
+      await env.DB.prepare('UPDATE shares SET done = 1 WHERE token = ?').bind(id).run(); return json({ ok: true });
+    }
+    const kind = m[3], idx = parseInt(m[4], 10);
+    if (!SHARE.kinds.has(kind) || idx > 39) return fail(400, 'bad_file');
+    if (req.method === 'GET') {                                                                                  // a guest downloading one of the files
+      const o = await env.FILES.get(shareObj(id, kind, idx)); if (!o) return fail(404, 'not_found');
+      const f = await env.DB.prepare('SELECT name, type FROM share_files WHERE token = ? AND kind = ? AND idx = ?').bind(id, kind, idx).first();
+      return new Response(o.body, { headers: { 'Content-Type': (f && f.type) || 'application/octet-stream', 'Cache-Control': 'private, max-age=600', 'Content-Disposition': `inline; filename="${(f && f.name) || kind}"`, 'X-Content-Type-Options': 'nosniff' } });
+    }
+    if (req.method !== 'PUT') return fail(405, 'method'); if (!sameSiteOk(req, url)) return fail(403, 'forbidden'); if (!keyOk) return fail(403, 'bad_key');
+    const type = String(req.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase(); if (!SHARE.types.has(type)) return fail(415, 'bad_type');
+    if (Number(req.headers.get('Content-Length') || 0) > SHARE.maxFile) return fail(413, 'too_big');
+    const buf = await req.arrayBuffer(); if (!buf.byteLength) return fail(400, 'empty'); if (buf.byteLength > SHARE.maxFile) return fail(413, 'too_big');
+    const cur = await env.DB.prepare('SELECT COALESCE(SUM(size), 0) AS n, COUNT(*) AS c FROM share_files WHERE token = ? AND NOT (kind = ? AND idx = ?)').bind(id, kind, idx).first();
+    if ((cur.n || 0) + buf.byteLength > SHARE.maxTotal || (cur.c || 0) >= SHARE.maxFiles) return fail(413, 'too_big');
+    let name = String(req.headers.get('X-Share-Name') || ''); if (!/^[A-Za-z0-9._-]{1,60}$/.test(name)) name = `${kind}-${idx}`;
+    await env.FILES.put(shareObj(id, kind, idx), buf, { httpMetadata: { contentType: type } });
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO share_files (token, kind, idx, name, type, size, seq) VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM share_files WHERE token = ?)) ON CONFLICT(token, kind, idx) DO UPDATE SET name = excluded.name, type = excluded.type, size = excluded.size').bind(id, kind, idx, name, type, buf.byteLength, id),
+      env.DB.prepare('UPDATE shares SET bytes = (SELECT COALESCE(SUM(size), 0) FROM share_files WHERE token = ?) WHERE token = ?').bind(id, id)]);
+    return json({ ok: true });
+  } catch (e) { shareReady = null; log('share_error', { path, message: String(e && e.message) }); return fail(500, 'server_error'); }
+}
+
 /* ---------- 7. router ---------- */
 export default {
   async fetch(req, env) {
@@ -462,6 +543,7 @@ export default {
         return path === '/api/auth/login' ? authLogin(req, env) : authRegister(req, env, await currentUser(req, env));
       }
       if (path.startsWith('/api/booth/')) return boothRoute(req, env, url, path);   // before the login lookup on purpose: guests need no account, and this never touches a session
+      if (path.startsWith('/api/share/')) return shareRoute(req, env, url, path);   // guest QR links: before the login lookup on purpose (guests need no account; this never touches a session)
       const user = await currentUser(req, env);
       if (path === '/api/me' && req.method === 'GET' && user && user.sessExp && user.sessExp - Math.floor(now() / 1000) < (SESSION_DAYS - 1) * 86400) {   // sliding session: re-issue the same login with a fresh full lifetime (at most about once a day)
         const fresh = await signToken(env, { u: user.id, e: user.sessEpoch }, SESSION_DAYS * 86400);

@@ -198,3 +198,43 @@ Nothing new to set up. It uses the same D1 database you already bound (`DB`); th
 The Worker only passes short connection notes between the two phones. Video, voice, chat and the countdown go straight between the devices (WebRTC), and rooms are deleted automatically after 8 hours.
 It never reads, sets or clears a login cookie, so Google and email/password sessions are not affected.
 Limit to know about: it uses free public STUN servers (Cloudflare and Google). On a very strict network (some offices, schools, mobile carriers) two devices may not be able to reach each other without a TURN relay; Cloudflare Calls/TURN can be added later if that ever shows up.
+
+
+---------------------------------------------------------------------------------------------------
+
+## E. QR ng event: 24 oras na gumagana kahit lumabas na sa final page (bago)
+
+Dati, **direct sa booth screen** dumadaan ang QR, kaya namamatay ito pag umalis o nag-reset ang booth.
+Ngayon, ina-upload ang strip, photos at GIF sa **sarili mong Cloudflare (R2 + D1)** at may **expires_at = 24 oras (86,400 segundo)** mula nang magawa.
+Bukas ito ng guest kahit bumalik na ang booth sa welcome screen o may bago nang guest. Pagkalipas ng 24 oras, lalabas ang **"Link expired after 24 hours"**.
+**Hindi ginagalaw** nito ang Photo Archive ng host, login, cookies o Google sign-in. Ang pansamantalang share link at mga file nito lang ang nabubura.
+
+**Walang bagong binding, walang bagong secret, walang SQL na ipa-paste.** Gamit pa rin ang `DB` (D1) at `FILES` (R2) na meron ka na.
+Ang dalawang bagong table (`shares`, `share_files`) ay **kusang nagagawa** sa unang QR.
+
+### Mga hakbang (≈ 3 minuto)
+
+**1.** Palitan ang mga file sa GitHub (o i-upload ang buong folder sa Cloudflare Pages kung doon ka nag-a-upload): `index.html`, `sw.js`, `_worker.js` at `CLOUD-SETUP.md`.
+   Maghintay na matapos ang **Deployment** (Cloudflare Pages → Deployments → dapat "Success").
+
+**2.** Buksan ito sa browser. Dapat puro `"ok": true`:
+
+```
+https://denphotobooth.online/api/health?check=1
+```
+
+**3. Subukan (1 minuto):** i-launch ang event, kumuha ng photo, pindutin ang **QR**. Dapat may nakasulat na **"Active for 24 hours, until ..."**.
+   I-scan gamit ang phone. Pagkatapos, **pindutin ang Restart** sa booth at i-scan ulit ang parehong QR. Dapat bukas pa rin at makaka-download pa rin.
+
+**4. (Optional pero maganda) Panlinis na backup sa R2:** Cloudflare → **R2 Object Storage** → `den-files` → **Settings** → **Object lifecycle rules** → **Add rule**
+   - Rule name: `delete-guest-shares`
+   - **Prefix: `share/`** (siguraduhing eksakto ito. **Huwag** burahin ang `u/`, nandoon ang Photo Archive ng mga account)
+   - Action: **Delete objects after 2 days** → Save
+
+   Kusa nang nagbubura ang worker ng mga expired na file, itong rule ay pangalawang proteksyon lang.
+
+### Kung may problema
+- **Walang "Active for 24 hours" sa QR window** → hindi pa na-deploy ang bagong `_worker.js`, o walang internet ang booth. Gagana pa rin ang QR (lumang direct na paraan), pero kailangang bukas ang booth screen.
+- **"Link not found"** → mali o putol ang link. I-scan ulit ang QR.
+- **"Link expired after 24 hours"** → lumagpas na ng 24 oras. Normal ito. Ang Photo Archive ng host ay buo pa rin.
+- Mga limit (para hindi maabuso): hanggang 40 MB bawat file, 150 MB bawat share, at 300 bagong share kada oras bawat network.
