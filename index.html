@@ -1761,6 +1761,15 @@ button.acct-ph:focus-visible, .acct-ph .acct-open:focus-visible { outline: 3px d
 .tpl input:hover + .tpl-card { background: var(--paper-2); }
 .tpl input:checked + .tpl-card { background: var(--blue-soft); box-shadow: 3px 4px 0 var(--blue); transform: translate(-1px, -1px); }
 .tpl input:focus-visible + .tpl-card { outline: 3px dashed var(--blue-deep); outline-offset: 3px; }
+/* template carousel on the editing page: the card in the middle is the selected one and is larger; the neighbours stay sharp (no blur). Same feel as the "Set up your layout" picker. */
+#templateGrid.tpl-car { --tcw: 76px; --tcg: 30px; display: flex; grid-template-columns: none; gap: var(--tcg); align-items: center; overflow-x: auto; overflow-y: hidden; padding: 56px 0; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; position: relative; }
+#templateGrid.tpl-car::-webkit-scrollbar { display: none; }
+#templateGrid.tpl-car::before, #templateGrid.tpl-car::after { content: ''; flex: 0 0 max(0px, calc(50% - var(--tcw) / 2 - var(--tcg))); }
+.tpl-car .tpl { flex: 0 0 var(--tcw); scroll-snap-align: center; transform: translateZ(0); transform-origin: 50% 50%; will-change: transform; -webkit-tap-highlight-color: transparent; }
+.tpl-car .tpl-card { padding: 6px 5px; }
+.tpl-car .tpl-card canvas { max-width: none; width: min(100%, calc(180px * var(--ar, 0.3333))); height: auto; }   /* every card is at most 180px tall, so tall strips do not stretch the carousel; the shape is never changed */
+.tpl-car .tpl.is-mid .tpl-card { background: var(--blue-soft); box-shadow: 3px 4px 0 var(--blue); }
+html.reduce-motion .tpl-car .tpl { transform: none; }
 
 .bg-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .bg-name { font-size: 0.82rem; color: var(--ink-soft); overflow-wrap: anywhere; min-width: 0; }
@@ -3100,28 +3109,6 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
           </div>
         </div>
 
-        <div class="edit-below">
-          <div class="text-field" id="textField" hidden>
-            <label class="label" for="customText" data-text="customTextLabel"></label>
-            <input type="text" id="customText" autocomplete="off" />
-            <p class="help" data-text="customTextHelp"></p>
-          </div>
-
-          <div class="text-field" id="tplTextField" hidden>
-            <label class="label" for="tplText" data-text="tplTextLabel"></label>
-            <input type="text" id="tplText" autocomplete="off" />
-            <p class="help" data-text="tplTextHelp"></p>
-          </div>
-
-          <div class="btn-row" style="justify-content:flex-start">
-            <button class="btn" type="button" id="editBack">
-              <svg class="icon" aria-hidden="true"><use href="#i-arrow-left" /></svg><span data-text="backToCamera"></span>
-            </button>
-            <button class="btn btn--primary" type="button" id="printBtn">
-              <svg class="icon" aria-hidden="true"><use href="#i-print" /></svg><span data-text="makeStrip"></span>
-            </button>
-          </div>
-        </div>
       </div>
 
       <div class="controls">
@@ -3200,6 +3187,28 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
           <legend class="label" data-text="extrasLegend"></legend>
           <label class="toggle"><input type="checkbox" id="optDate" /><span class="track" aria-hidden="true"></span><span class="t-text" data-text="optDate"></span></label>
         </fieldset>
+        <div class="edit-below" id="editBelow">
+          <div class="text-field" id="textField" hidden>
+            <label class="label" for="customText" data-text="customTextLabel"></label>
+            <input type="text" id="customText" autocomplete="off" />
+            <p class="help" data-text="customTextHelp"></p>
+          </div>
+
+          <div class="text-field" id="tplTextField" hidden>
+            <label class="label" for="tplText" data-text="tplTextLabel"></label>
+            <input type="text" id="tplText" autocomplete="off" />
+            <p class="help" data-text="tplTextHelp"></p>
+          </div>
+
+          <div class="btn-row" style="justify-content:flex-start">
+            <button class="btn" type="button" id="editBack">
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-left" /></svg><span data-text="backToCamera"></span>
+            </button>
+            <button class="btn btn--primary" type="button" id="printBtn">
+              <svg class="icon" aria-hidden="true"><use href="#i-print" /></svg><span data-text="makeStrip"></span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -7482,7 +7491,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function syncEditControls() {
     buildFilterTray();
     const t = document.querySelector(`input[name="template"][value="${state.templateId}"]`);
-    if (t) t.checked = true;
+    if (t) { t.checked = true; tcFollow(); }
     const f = document.querySelector(`input[name="filter"][value="${state.filterId}"]`);
     if (f) f.checked = true;
     checkSwatch('stripColor', state.stripColor);
@@ -7521,8 +7530,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     document.querySelectorAll('#templateGrid canvas, #templateGridMore canvas').forEach((c) => {
       const t = getTemplate(c.dataset.tpl);
       if (!templateFits(t, currentLayout())) return;
-      renderStrip(c, 28, { tpl: t.id, color: t.bg || CONFIG.strip.defaultColor, frame: t.frame || null, bg: null, photos: [], stickers: [], strokes: [], showDate: false, text: '' });
+      c._hi = 0; renderStrip(c, 48, { tpl: t.id, color: t.bg || CONFIG.strip.defaultColor, frame: t.frame || null, bg: null, photos: [], stickers: [], strokes: [], showDate: false, text: '' });
     });
+    document.querySelectorAll('#templateGrid canvas').forEach((c) => { if (c.width && c.height) c.style.setProperty('--ar', (c.width / c.height).toFixed(4)); });
+    try { tcHiRes(tcCardOf(document.querySelector('input[name="template"]:checked'))); } catch (e) { /* carousel not ready yet */ }
   }
 
   async function onBgFile(e) {
@@ -7708,18 +7719,121 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   }
 
   /* Templates with fixed artwork list the photo counts they support (counts: [3, 4]); others fit any layout. */
-  const TPL_VISIBLE = 4;                       // templates shown before "Show more"
+  const TPL_VISIBLE = 1e6;                     // every template lives in the one scrolling carousel now (no "Show more" row)
+  /* The one ordering rule for the template list, in every layout: "Plain" first, then the user's own uploaded templates, then the owner / default artwork
+     (in the order they are defined, so templates added in later updates simply land at the end of that last group). Pure re-ordering: nothing is added, removed or changed. */
+  const tplOrder = (list) => list.filter((t) => t.id === 'plain').concat(list.filter((t) => t.id !== 'plain' && t.custom), list.filter((t) => t.id !== 'plain' && !t.custom));
   const templateFits = (t, layout) => (layout && layout.onl && (t.custom || (t.art && !(t.paint === 'strips' && stpWideOk(t.id)))) ? false /* 3 x 6 long-distance strip: only templates that redraw to any width, or whose 1:3 artwork can be widened in one quiet band, are offered */ : t.custom ? t.layoutKey === tplKey(layout) : t.layouts ? t.layouts.includes(layout.id) : layout.custom || (layout.widthIn && !layout.arTpl) ? t.id === 'plain' : !t.counts || t.counts.includes(layout.count));
+
+  /* ---- template carousel (editing page): works like the "Set up your layout" picker ----
+     The card in the middle is the selected template and is drawn larger; the cards beside it keep full sharpness (no blur, no fade). While you scroll they lean and sway a little,
+     and tapping a side card makes it glide to the middle with a spin. Every frame only touches transform (GPU), and nothing here uses cookies, storage or the network. */
+  const TC = { inited: false, k: [], c: [], pitch: 106, half: 0, raf: 0, lastTs: 0, lastSl: 0, v: 0, lastMove: 0, anim: null, settleT: 0, userT: 0, user: false, idx: -1, lastClick: 0, measureT: 0 };
+  const TC_SCALE = 1.5, TC_MICRO = 14, TC_SPIN = 250, tcClamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const tcTrack = () => $('templateGrid');
+  const tcReduce = () => document.documentElement.classList.contains('reduce-motion');
+  const tcSfx = (n) => { try { const x = window.DenSfx; if (x && x[n]) x[n](); } catch (e) { /* sound is optional */ } };
+  const tcScale = (a) => Math.max(0.85, TC_SCALE - Math.min(a, 1.6) * 0.42);
+  function tcMeasure() {
+    const tr = tcTrack(); if (!tr || !tr.clientWidth) return;
+    const k = Array.from(tr.children).filter((c) => c.classList.contains('tpl') && !c.hidden);
+    TC.k = k; TC.c = k.map((c) => c.offsetLeft + c.offsetWidth / 2); TC.half = tr.clientWidth / 2;
+    TC.pitch = k.length > 1 ? Math.max(50, (TC.c[k.length - 1] - TC.c[0]) / (k.length - 1)) : 106;
+    if (k.length) { const h = Math.max.apply(null, k.map((c) => c.offsetHeight)); tr.style.paddingTop = tr.style.paddingBottom = Math.ceil(h * (TC_SCALE - 1) / 2 + 12) + 'px'; }   // room for the enlarged centre card
+    k.forEach((c) => { c._k = ''; });
+  }
+  function tcLook(c, i, mid, rz) {
+    const d = (TC.c[i] - mid) / TC.pitch, a = Math.abs(d); if (a > 3.5) return;                  // far off screen: leave as is
+    const sc = tcScale(a), ry = tcClamp(-d * TC_MICRO, -26, 26), key = ((ry * 2) | 0) + '|' + ((sc * 100) | 0) + '|' + ((rz * 4) | 0);
+    if (c._k === key) return; c._k = key;
+    c.style.transform = tcReduce() ? 'scale(' + sc.toFixed(3) + ')' : 'perspective(900px) rotateY(' + ry.toFixed(1) + 'deg) rotateZ(' + rz.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
+    c.style.zIndex = a < 0.5 ? 2 : 1;
+  }
+  function tcFrame(now) {
+    TC.raf = 0; const tr = tcTrack(); if (!tr || !TC.k.length) return;
+    const sl = tr.scrollLeft, mid = sl + TC.half, dt = Math.max(1, now - (TC.lastTs || now)); TC.lastTs = now;
+    const vi = (sl - TC.lastSl) / dt; TC.lastSl = sl; TC.v += (vi - TC.v) * 0.3; if (Math.abs(vi) > 0.015) TC.lastMove = now;
+    const rz = tcReduce() ? 0 : tcClamp(-TC.v * 3.2, -7, 7); let bi = 0, bd = 1e9;                  // the playful sway follows the scroll speed and settles back to upright
+    for (let i = 0; i < TC.k.length; i++) { tcLook(TC.k[i], i, mid, rz); const dd = Math.abs(TC.c[i] - mid); if (dd < bd) { bd = dd; bi = i; } }
+    if (bi !== TC.idx) { TC.idx = bi; TC.k.forEach((c, j) => c.classList.toggle('is-mid', j === bi)); }
+    if (now - TC.lastMove < 160 || TC.anim || Math.abs(TC.v) > 0.02) TC.raf = requestAnimationFrame(tcFrame);
+  }
+  function tcKick() { if (TC.raf) return; TC.lastTs = performance.now(); const tr = tcTrack(); TC.lastSl = tr ? tr.scrollLeft : 0; TC.raf = requestAnimationFrame(tcFrame); }
+  function tcCardOf(inp) { return inp ? inp.closest('.tpl') : null; }
+  function tcTarget(card) { const tr = tcTrack(); return card.offsetLeft + card.offsetWidth / 2 - tr.clientWidth / 2; }
+  function tcCenterChecked() {                                                                  // put the selected template in the middle (instantly: used for restore / layout change)
+    const tr = tcTrack(); if (!tr || !tr.clientWidth) return;
+    const card = tcCardOf(document.querySelector('input[name="template"]:checked')); if (!card || card.hidden) return;
+    const to = tcTarget(card); if (Math.abs(to - tr.scrollLeft) > 1.5) tr.scrollLeft = to;
+    tcKick();
+  }
+  function tcFollow() { if (TC.inited && !TC.anim && !TC.user) tcCenterChecked(); }              // called when the selection changes from anywhere else
+  function tcHiRes(card) {                                                                       // the enlarged card gets a sharper preview so its artwork can be inspected
+    const cv = card && card.querySelector('canvas'); if (!cv || cv._hi) return;
+    const t = getTemplate(cv.dataset.tpl); if (!templateFits(t, currentLayout())) return;
+    renderStrip(cv, 110, { tpl: t.id, color: t.bg || CONFIG.strip.defaultColor, frame: t.frame || null, bg: null, photos: [], stickers: [], strokes: [], showDate: false, text: '' }); cv._hi = 1; if (cv.width && cv.height) cv.style.setProperty('--ar', (cv.width / cv.height).toFixed(4));
+  }
+  function tcPick(inp) { if (inp && !inp.checked) { inp.checked = true; inp.dispatchEvent(new Event('change', { bubbles: true })); } }   // the normal change path: template, frame bounds and preview update at once
+  function tcSettle() {                                                                          // scrolling stopped: whichever template is in the middle becomes the selected one
+    if (TC.anim) return; const tr = tcTrack(); if (!tr || !TC.k.length) return;
+    const mid = tr.scrollLeft + TC.half; let best = null, bd = 1e9;
+    TC.k.forEach((c, i) => { const d = Math.abs(TC.c[i] - mid); if (d < bd) { bd = d; best = c; } });
+    if (!best) return; const inp = best.querySelector('input'); tcPick(inp); tcHiRes(best);
+  }
+  function tcCancel() { if (!TC.anim) return; const a = TC.anim; TC.anim = null; cancelAnimationFrame(a.raf); tcTrack().style.scrollSnapType = ''; }
+  function tcSpin(card) {
+    tcCancel(); tcMeasure(); const tr = tcTrack(), inp = card.querySelector('input');
+    const to = tcTarget(card), from = tr.scrollLeft, dist = to - from;
+    setTimeout(() => { tcPick(inp); tcHiRes(card); }, 0);
+    if (Math.abs(dist) < 2 || tcReduce()) { tr.scrollLeft = to; tcSfx('pick'); tcKick(); return; }
+    const idx = TC.k.indexOf(card), a0 = Math.abs((TC.c[idx] - (from + TC.half)) / TC.pitch), s0 = tcScale(a0);
+    const dur = tcClamp(520 + Math.abs(dist) / TC.pitch * 110, 650, 1000), t0 = performance.now(), dir = dist > 0 ? -1 : 1;
+    tr.style.scrollSnapType = 'none'; tcSfx('spin');
+    try {
+      card.animate([{ transform: 'perspective(900px) rotateY(0deg) scale(' + s0.toFixed(3) + ')' }, { transform: 'perspective(900px) rotateY(' + (dir * TC_SPIN) + 'deg) scale(1.2)', offset: 0.5 }, { transform: 'perspective(900px) rotateY(0deg) scale(' + TC_SCALE + ')' }], { duration: dur, easing: 'cubic-bezier(.4,0,.2,1)' });
+    } catch (e) { /* older browsers: the glide still works */ }
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2), a = TC.anim = { raf: 0 };
+    (function step(now) {
+      if (TC.anim !== a) return;
+      const p = Math.min(1, (now - t0) / dur); tr.scrollLeft = from + dist * ease(p); tcKick();
+      if (p < 1) a.raf = requestAnimationFrame(step);
+      else { tr.scrollLeft = to; tr.style.scrollSnapType = ''; TC.anim = null; tcKick(); }
+    })(t0);
+  }
+  function tcRefresh() { if (!TC.inited) return; tcMeasure(); tcCenterChecked(); tcKick(); }
+  function tcSchedule() { clearTimeout(TC.measureT); TC.measureT = setTimeout(tcRefresh, 30); }
+  function tcInit() {
+    const tr = tcTrack(); if (!tr || TC.inited) return; TC.inited = true; tr.classList.add('tpl-car');
+    const userTouch = () => { tcMeasure(); TC.user = true; clearTimeout(TC.userT); TC.userT = setTimeout(() => { if (!TC.anim) TC.user = false; }, 900); tcCancel(); };
+    ['touchstart', 'pointerdown', 'keydown'].forEach((ev) => tr.addEventListener(ev, userTouch, { passive: true }));          // (no wheel hijack: the page keeps scrolling vertically over the carousel)
+    tr.addEventListener('scroll', () => {
+      tcKick(); clearTimeout(TC.settleT);
+      if (TC.user && !TC.anim) { clearTimeout(TC.userT); TC.userT = setTimeout(() => { TC.user = false; }, 700); }
+      TC.settleT = setTimeout(tcSettle, 140);
+    }, { passive: true });
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest && e.target.closest('.tpl-del')) return;                               // the delete badge of a custom template keeps working
+      const card = e.target.closest && e.target.closest('.tpl'); if (!card || !tr.contains(card)) return;
+      const now = performance.now(); if (now - TC.lastClick < 60) { e.preventDefault(); return; } TC.lastClick = now;
+      e.preventDefault();
+      const centred = Math.abs(card.offsetLeft + card.offsetWidth / 2 - (tr.scrollLeft + tr.clientWidth / 2)) < 20 && !TC.anim;
+      if (centred) { tcPick(card.querySelector('input')); tcHiRes(card); } else tcSpin(card);
+    }, true);
+    if (window.ResizeObserver) new ResizeObserver(tcSchedule).observe(tr);
+    window.addEventListener('resize', tcSchedule);
+    if (window.MutationObserver) new MutationObserver(tcSchedule).observe(tr, { childList: true });
+    tcSchedule();
+  }
   function layoutTemplateVisibility() {
     const L = currentLayout(), byId = {};
     document.querySelectorAll('#templateGrid .tpl:not(.tpl--add), #templateGridMore .tpl:not(.tpl--add)').forEach((el) => { const inp = el.querySelector('input[name="template"]'); if (inp) byId[inp.value] = el; });
-    const fit = CONFIG.templates.filter((t) => templateFits(t, L));
+    const fit = tplOrder(CONFIG.templates).filter((t) => templateFits(t, L));
     CONFIG.templates.forEach((t) => { if (byId[t.id]) byId[t.id].hidden = !templateFits(t, L); });
     fit.forEach((t, i) => { if (byId[t.id]) $(i < TPL_VISIBLE ? 'templateGrid' : 'templateGridMore').appendChild(byId[t.id]); });   // first row, rest under "Show more"
     placeAddButton();
     const more = $('tplMore'), btn = $('tplToggle'), needMore = fit.length >= TPL_VISIBLE;         // the "+" lives in the first row unless it is full
     btn.hidden = !needMore; more.hidden = !needMore;
-    updateTplGuide();
+    updateTplGuide(); tcInit(); tcSchedule();
   }
   function filterTemplatesForLayout() {
     layoutTemplateVisibility();
@@ -9996,7 +10110,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }
     if (token !== ctToken) return;
     CONFIG.templates = CONFIG.templates.filter((t) => !t.custom);
-    CONFIG.templates.splice(Math.max(0, CONFIG.templates.findIndex((t) => t.id === 'plain'), CONFIG.templates.findIndex((t) => t.id === 'vintbooth')) + 1, 0, ...made);
+    CONFIG.templates = tplOrder(CONFIG.templates.concat(made));
     try { buildLayoutChoices(); } catch (e) { /* setup not ready yet */ }                       // previews pick up the user's templates
     if (!CONFIG.templates.some((t) => t.id === keep)) { state.templateId = 'plain'; state.frameColor = null; }
     rebuildTemplateGrid(); updateTplBadge();
@@ -10008,6 +10122,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 
   function rebuildTemplateGrid() {
     const html = (t) => `<label class="tpl"${t.custom ? ` data-custom="${esc(t.id)}"` : ''}><input type="radio" name="template" value="${esc(t.id)}"><span class="tpl-card"><canvas data-tpl="${esc(t.id)}" aria-hidden="true"></canvas><span class="tpl-name">${esc(t.label)}</span></span>${t.custom ? `<button type="button" class="tpl-del" aria-label="Remove template ${esc(t.label)}"><svg class="icon" aria-hidden="true"><use href="#i-trash" /></svg></button>` : ''}</label>`;
+    CONFIG.templates = tplOrder(CONFIG.templates);
     $('templateGrid').innerHTML = CONFIG.templates.slice(0, TPL_VISIBLE).map(html).join('');
     $('templateGridMore').innerHTML = CONFIG.templates.slice(TPL_VISIBLE).map(html).join('');
     document.querySelectorAll('input[name="template"]').forEach((el) => el.addEventListener('change', () => onTemplateChange(el.value)));
@@ -19381,6 +19496,27 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   if (typeof window.__denEvFsTest === 'function') window.__denEvFsTest({ live: live, onGesture: onGesture, sync: sync, state: function () { return { dismissed: dismissed, wasLive: wasLive, enteredByUs: enteredByUs }; } });
 })();
 </script>
+<style id="edit-split">
+/* Editing page, tablets and computers (701px and wider): the left side (the big live preview + Back / Make strip) never scrolls and fits the screen;
+   only the right side (templates, filters, colours, stickers, scribble) scrolls on its own. Phones keep the stacked layout. Layout only: nothing is stored or sent. */
+@media (min-width: 701px) {
+  html #screen-edit.screen:not([hidden]) { height: max(100dvh, var(--ev-h, 0px)); min-height: 0; box-sizing: border-box; overflow: hidden; }
+  html #screen-edit.screen .edit-grid { flex: 1 1 auto; min-height: 0; width: min(100%, 1280px); grid-template-columns: minmax(0, clamp(260px, 36vw, 560px)) minmax(0, 1fr); align-items: stretch; }
+  #screen-edit .edit-left { min-height: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  #screen-edit .edit-left .preview-wrap { position: static; flex: 1 1 0; min-height: 0; width: 100%; align-items: center; justify-content: center; container-type: size; }
+  #screen-edit .edit-left .draw-bar { flex: none; }
+  /* the words field + Back / Print live at the bottom of the right panel and stay in view while the rest scrolls */
+  #screen-edit .controls > .edit-below { position: sticky; bottom: -28px; z-index: 5; margin: 0 -10px -28px -4px; padding: 12px 10px 28px 4px; background: linear-gradient(to bottom, rgba(251, 247, 238, 0), var(--paper, #fbf7ee) 14px); gap: 12px; }
+  #screen-edit .edit-below .btn-row { flex-direction: row; align-items: stretch; gap: 10px; }
+  #screen-edit .edit-below .btn-row .btn { flex: 1 1 0; width: auto; min-width: 0; }
+  #screen-edit .controls { min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px 10px 28px 4px; scrollbar-width: thin; }
+}
+@media (min-width: 701px) {
+  @supports (width: 1cqw) {
+    html #screen-edit .edit-left .preview-card { width: min(calc(100cqw - 8px), calc((100cqh - 8px - 28px) * var(--sar, 0.3333) + 28px)) !important; }   /* as large as the left side allows, never taller than it, shape unchanged */
+  }
+}
+</style>
 <style id="den-tall-css">
 /* html.den-tall (Home Screen app whose layout viewport is shorter than the screen): every page is laid out at the full screen height as absolute content, not fixed, so nothing is clipped short and no strip shows.
    Before the script runs, 100lvh is used, so the very first paint is already full height (no top / bottom flash). */
