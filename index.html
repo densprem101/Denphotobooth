@@ -7752,7 +7752,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const k = Array.from(tr.children).filter((c) => c.classList.contains('tpl') && !c.hidden);
     TC.k = k; TC.c = k.map((c) => c.offsetLeft + c.offsetWidth / 2); TC.half = tr.clientWidth / 2;
     TC.pitch = k.length > 1 ? Math.max(50, (TC.c[k.length - 1] - TC.c[0]) / (k.length - 1)) : 106;
-    if (k.length) { const h = Math.max.apply(null, k.map((c) => c.offsetHeight)); tr.style.paddingTop = tr.style.paddingBottom = Math.ceil(h * (TC_SCALE - 1) / 2 + 12) + 'px'; }   // room for the enlarged centre card
+    if (k.length) { const h = Math.max.apply(null, k.map((c) => c.offsetHeight)); tr.style.paddingTop = tr.style.paddingBottom = Math.max(78, Math.ceil(h * (TC_SCALE * 1.2 - 1) / 2 + 12)) + 'px'; }   // room for the enlarged (and spinning) centre card, so its top and bottom are never clipped
+    if (window.ResizeObserver) { TC.ro = TC.ro || new ResizeObserver(() => tcSchedule()); k.forEach((c) => { if (!c._ro) { c._ro = 1; TC.ro.observe(c); } }); }   // re-measure once the artwork has loaded and a card changed height   // room for the enlarged centre card
     k.forEach((c) => { c._k = ''; });
   }
   function tcLook(c, i, mid, rz) {
@@ -19548,8 +19549,10 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
    stickers, scribble) scrolls on its own. The two sides are positioned inside a fixed-height box, so no browser can let them push each other or the page. Phones keep the stacked layout.
    Layout only: nothing is stored or sent. */
 @media (min-width: 701px) {
-  html:has(body[data-screen="edit"]), body[data-screen="edit"] { height: max(100dvh, var(--ev-h, 0px)); overflow: hidden; overscroll-behavior: none; }
-  html #screen-edit.screen:not([hidden]) { height: max(100dvh, var(--ev-h, 0px)); min-height: 0; box-sizing: border-box; overflow: hidden; }
+  html:has(body[data-screen="edit"]), body[data-screen="edit"] { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
+html.den-tall:has(body[data-screen="edit"]), html.den-tall body[data-screen="edit"] { height: max(100dvh, var(--ev-h, 0px)); }   /* only the Home Screen app is laid out taller than dvh; in a normal Safari tab the page is exactly the visible area, so nothing drops under the tab bar */
+  html #screen-edit.screen:not([hidden]) { height: 100dvh; min-height: 0; box-sizing: border-box; overflow: hidden; }
+html.den-tall #screen-edit.screen:not([hidden]) { height: max(100dvh, var(--ev-h, 0px)); }
   html #screen-edit.screen .edit-grid { --elw: clamp(260px, 36vw, 560px); flex: 1 1 0; min-height: 0; width: min(100%, 1280px); display: block; position: relative; }
   #screen-edit .edit-left { position: absolute; top: 0; bottom: 0; left: 0; width: var(--elw); height: auto; max-height: none; align-self: stretch; margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
   #screen-edit .edit-left .preview-wrap { position: static; flex: 1 1 0; min-height: 0; width: 100%; align-items: center; justify-content: center; container-type: size; }
