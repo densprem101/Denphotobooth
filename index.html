@@ -19497,19 +19497,28 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
 })();
 </script>
 <style id="edit-split">
-/* Editing page, tablets and computers (701px and wider): the left side (the big live preview + Back / Make strip) never scrolls and fits the screen;
-   only the right side (templates, filters, colours, stickers, scribble) scrolls on its own. Phones keep the stacked layout. Layout only: nothing is stored or sent. */
+/* Editing page, tablets and computers (701px and wider): the left side (the big live preview) is fixed and never scrolls; only the right side (templates, filters, colours,
+   stickers, scribble) scrolls on its own. The two sides are positioned inside a fixed-height box, so no browser can let them push each other or the page. Phones keep the stacked layout.
+   Layout only: nothing is stored or sent. */
 @media (min-width: 701px) {
+  html:has(body[data-screen="edit"]), body[data-screen="edit"] { height: max(100dvh, var(--ev-h, 0px)); overflow: hidden; overscroll-behavior: none; }
   html #screen-edit.screen:not([hidden]) { height: max(100dvh, var(--ev-h, 0px)); min-height: 0; box-sizing: border-box; overflow: hidden; }
-  html #screen-edit.screen .edit-grid { flex: 1 1 auto; min-height: 0; width: min(100%, 1280px); grid-template-columns: minmax(0, clamp(260px, 36vw, 560px)) minmax(0, 1fr); align-items: stretch; }
-  #screen-edit .edit-left { min-height: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  html #screen-edit.screen .edit-grid { --elw: clamp(260px, 36vw, 560px); flex: 1 1 0; min-height: 0; width: min(100%, 1280px); display: block; position: relative; }
+  #screen-edit .edit-left { position: absolute; top: 0; bottom: 0; left: 0; width: var(--elw); height: auto; max-height: none; align-self: stretch; margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
   #screen-edit .edit-left .preview-wrap { position: static; flex: 1 1 0; min-height: 0; width: 100%; align-items: center; justify-content: center; container-type: size; }
   #screen-edit .edit-left .draw-bar { flex: none; }
-  /* the words field + Back / Print live at the bottom of the right panel and stay in view while the rest scrolls */
-  #screen-edit .controls > .edit-below { position: sticky; bottom: -28px; z-index: 5; margin: 0 -10px -28px -4px; padding: 12px 10px 28px 4px; background: linear-gradient(to bottom, rgba(251, 247, 238, 0), var(--paper, #fbf7ee) 14px); gap: 12px; }
-  #screen-edit .edit-below .btn-row { flex-direction: row; align-items: stretch; gap: 10px; }
-  #screen-edit .edit-below .btn-row .btn { flex: 1 1 0; width: auto; min-width: 0; }
-  #screen-edit .controls { min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px 10px 28px 4px; scrollbar-width: thin; }
+  #screen-edit .controls { position: absolute; top: 0; bottom: 0; left: calc(var(--elw) + clamp(20px, 4vw, 44px)); right: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px 10px 12px 4px; scrollbar-width: thin; }
+  /* words field + Back + Print: one slim row pinned to the bottom of the right panel */
+  #screen-edit .controls > .edit-below { position: sticky; bottom: -12px; z-index: 5; margin: 0 -10px -12px -4px; padding: 10px 10px 12px 4px; background: linear-gradient(to bottom, rgba(251, 247, 238, 0), var(--paper, #fbf7ee) 12px); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; }
+  #screen-edit .edit-below .btn-row { display: contents; }
+  #screen-edit .edit-below #editBack { grid-column: 1; grid-row: 1; order: 0; }
+  #screen-edit .edit-below .text-field { grid-column: 2; grid-row: 1; gap: 0; min-width: 0; }
+  #screen-edit .edit-below .text-field + .text-field:not([hidden]) { grid-row: 2; }
+  #screen-edit .edit-below #printBtn { grid-column: 3; grid-row: 1; }
+  #screen-edit .edit-below .text-field .label { font-size: 0.66rem; margin: 0 0 2px; line-height: 1.1; }
+  #screen-edit .edit-below .text-field .help { display: none; }
+  #screen-edit .edit-below .text-field input { min-height: 40px; padding: 6px 12px; font-size: 0.95rem; }
+  #screen-edit .edit-below .btn { min-height: 44px; padding-top: 6px; padding-bottom: 6px; width: auto; }
 }
 @media (min-width: 701px) {
   @supports (width: 1cqw) {
@@ -19517,6 +19526,21 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   }
 }
 </style>
+<script id="edit-lock-js">
+/* Safety net for the locked left side: focusing or tapping something inside a clipped box makes some browsers scroll that box. If it ever happens, put it straight back. */
+(function () {
+  'use strict';
+  var back = function (el) { if (el.scrollTop) el.scrollTop = 0; if (el.scrollLeft) el.scrollLeft = 0; };
+  var wide = function () { return window.matchMedia('(min-width: 701px)').matches; };
+  var on = function () { var s = document.getElementById('screen-edit'); return !!(s && !s.hidden && wide()); };
+  function hold() {
+    ['screen-edit'].forEach(function (id) { var e = document.getElementById(id); if (e) e.addEventListener('scroll', function () { if (on()) back(e); }, { passive: true }); });
+    ['.edit-grid', '.edit-left', '.preview-wrap'].forEach(function (q) { var e = document.querySelector('#screen-edit ' + q); if (e) e.addEventListener('scroll', function () { if (on()) back(e); }, { passive: true }); });
+    window.addEventListener('scroll', function () { if (on() && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0); }, { passive: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hold); else hold();
+})();
+</script>
 <style id="den-tall-css">
 /* html.den-tall (Home Screen app whose layout viewport is shorter than the screen): every page is laid out at the full screen height as absolute content, not fixed, so nothing is clipped short and no strip shows.
    Before the script runs, 100lvh is used, so the very first paint is already full height (no top / bottom flash). */
