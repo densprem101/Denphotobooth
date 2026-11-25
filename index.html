@@ -2696,23 +2696,23 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         <div class="wh-car" id="whCar" tabindex="-1">
           <div class="wh-pg is-on" id="whPg1" role="group" aria-roledescription="slide" aria-label="Solo booth guide">
         <p class="wh-lead">Four easy steps from the curtain to your keepsake.</p>
-        <ol class="wh-steps">
+        <div data-how="solo" class="wh-hostd"><ol class="wh-steps">
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-grid)" aria-hidden="true"></i><b class="wh-n">1</b><h3>Choose a layout</h3><p>Pick a photo strip, a grid or a Student ID card, or build your very own custom size.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-cam)" aria-hidden="true"></i><b class="wh-n">2</b><h3>Strike a pose</h3><p>Allow the camera, get ready and let the countdown roll. Wave a hand to start, and redo any shot you are not happy with.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-palette)" aria-hidden="true"></i><b class="wh-n">3</b><h3>Customize</h3><p>Dress your strip up with backgrounds, frames, stickers, templates and hand-drawn flair.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-down)" aria-hidden="true"></i><b class="wh-n">4</b><h3>Download</h3><p>Save it, turn it into a live GIF, share it with a QR code, or print it. It is all yours.</p></li>
-        </ol>
+        </ol></div>
         <p class="wh-go"><button class="wh-start" id="whStart" type="button"><span>Get Started</span><svg class="icon" aria-hidden="true"><use href="#i-arrow-right" /></svg></button></p>
           </div>
           <div class="wh-pg" id="whPg2" role="group" aria-roledescription="slide" aria-label="Long distance guide" aria-hidden="true" inert>
         <p class="wh-lead">Far from your friend? Share one booth anyway.</p>
         <div class="wh-link" aria-hidden="true"><svg viewBox="0 0 420 96" focusable="false"><path class="wh-arc" d="M76 40 Q210 -6 344 40"/><g transform="translate(14 14)"><g class="bt"><rect x="0" y="0" width="54" height="72" rx="8" style="fill:var(--blue,#a8c5e0)"/><rect x="8" y="8" width="38" height="15" rx="3" style="fill:#fffdf6"/><circle class="lens" cx="27" cy="15.5" r="4.2" style="fill:var(--wh-clay,#c4784f)"/><rect x="9" y="31" width="36" height="35" rx="4" style="fill:var(--wh-mustard,#e2b74e)"/><path d="M27 31v35"/></g></g><g transform="translate(352 14)"><g class="bt"><rect x="0" y="0" width="54" height="72" rx="8" style="fill:var(--blue,#a8c5e0)"/><rect x="8" y="8" width="38" height="15" rx="3" style="fill:#fffdf6"/><circle class="lens" cx="27" cy="15.5" r="4.2" style="fill:var(--wh-clay,#c4784f)"/><rect x="9" y="31" width="36" height="35" rx="4" style="fill:var(--wh-mustard,#e2b74e)"/><path d="M27 31v35"/></g></g><circle class="wh-pulse" cx="210" cy="17" r="8"/><circle class="wh-dot-a" r="5"><animateMotion dur="2.6s" repeatCount="indefinite" path="M76 40 Q210 -6 344 40"/></circle><circle class="wh-dot-a" r="5"><animateMotion dur="2.6s" begin="-0.87s" repeatCount="indefinite" path="M76 40 Q210 -6 344 40"/></circle><circle class="wh-dot-b" r="4.5"><animateMotion dur="3.1s" begin="-1s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear" path="M76 40 Q210 -6 344 40"/></circle></svg></div>
-        <ol class="wh-steps">
+        <div data-how="far" class="wh-hostd"><ol class="wh-steps">
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-door)" aria-hidden="true"></i><b class="wh-n">1</b><h3>Open a booth</h3><p>Tap Join a Booth, then Create. Your own shared booth opens in seconds.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-key)" aria-hidden="true"></i><b class="wh-n">2</b><h3>Send the code</h3><p>You get a short booth ID. Tap Copy Invite, send it to your friend, and they tap Join and type it in.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-chat)" aria-hidden="true"></i><b class="wh-n">3</b><h3>See each other live</h3><p>Video, voice and chat go straight between you. Your layout and timer stay in sync, and a tap splits the screen in half.</p></li>
           <li class="wh-step"><i class="wh-ic" style="--ic:var(--wi-cam)" aria-hidden="true"></i><b class="wh-n">4</b><h3>Snap together</h3><p>Start the countdown and both booths shoot at the same time. Redo shots and dress up the strip together.</p></li>
-        </ol>
+        </ol></div>
         <p class="wh-go"><button class="wh-start" id="whJoin" type="button"><span>Join a Booth</span><svg class="icon" aria-hidden="true"><use href="#i-arrow-right" /></svg></button></p>
           </div>
         </div>
@@ -7709,6 +7709,19 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const L = currentLayout(), wi = L.widthIn || CONFIG.strip.widthIn, cw = ($('stripPreview').clientWidth || 0) * Math.min(2, window.devicePixelRatio || 1), base = CONFIG.strip.previewDpi;
     return Math.min(outDpi(L), Math.max(base, Math.min(Math.ceil(cw / wi), base * 2.5)));
   }
+  /* The live preview card follows the real shape of what was drawn (tall art strips such as Vintage Booth are 1:5, not 1:3), so it always fits the left side with nothing cut off. UI sizing only. */
+  const __renderStripRaw = renderStrip;
+  renderStrip = function (canvas) {
+    const r = __renderStripRaw.apply(this, arguments);
+    try {
+      if (canvas && canvas.id === 'stripPreview' && canvas.width && canvas.height) {
+        const sar = canvas.width / canvas.height, sc = document.getElementById('screen-edit');
+        if (sc) { sc.style.setProperty('--sar', sar.toFixed(4)); sc.classList.toggle('is-compact', sar > 0.45); }
+      }
+    } catch (e) { /* sizing only */ }
+    return r;
+  };
+
   function schedulePreview() {
     if (state.previewQueued) return;
     state.previewQueued = true;
@@ -18045,6 +18058,40 @@ html.reduce-motion .ln-evn { width: 20ch; } html.reduce-motion .ln-gif svg:first
     return h;
   }
 
+  /* Front page "How it works": the same live mini demos as Learn more, shown right on the welcome page. Presentation only. */
+  window.__denHowDemos = function () {
+    var hosts = document.querySelectorAll('[data-how]'); if (!hosts.length) return;
+    var L = {
+      solo: [['Choose a layout', 'Pick a photo strip, a grid or a Student ID card, or build your very own custom size.', 'layout'], ['Strike a pose', 'Allow the camera, get ready and let the countdown roll. Make a frame with your hands to start, and redo any shot you are not happy with.', 'frame'], ['Customize', 'Dress your strip up with backgrounds, filters, frames, stickers and templates.', 'stk'], ['Download', 'Save it, turn it into a live GIF, share it with a QR code, or print it. It is all yours.', 'dl']],
+      far: [['Open a booth', 'Tap Join a Booth, then Create. Your own shared booth opens in seconds.', 'door'], ['Send the code', 'You get a short booth ID. Tap Copy Invite, send it to your friend, and they tap Join and type it in.', 'code'], ['See each other live', 'Video, voice and chat go straight between you. Your layout and timer stay in sync.', 'far'], ['Snap together', 'Start the countdown and both booths shoot at the same time. Redo shots and dress up the strip together.', 'far', true]]
+    };
+    var all = [];
+    Array.prototype.forEach.call(hosts, function (h) {
+      var a = L[h.getAttribute('data-how')]; if (!a || h.getAttribute('data-built')) return;
+      try {
+        h.innerHTML = '<ol class="ln-steps">' + a.map(function (r) { return step(r[0], r[1], r[2], r[3]); }).join('') + '</ol>';
+        h.setAttribute('data-built', '1');
+        Array.prototype.forEach.call(h.querySelectorAll('.ln-demo'), function (el) {
+          var k = el.getAttribute('data-d');
+          el.addEventListener('click', function (e) {
+            var b = e.target.closest && e.target.closest('.ln-tabs button[data-v]'); if (!b || !el.contains(b) || b.hasAttribute('data-s') || b.hasAttribute('data-ff')) return;
+            Array.prototype.forEach.call(b.parentNode.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+            var t = el.querySelector('[data-tg]'); if (t) t.setAttribute('data-v', b.getAttribute('data-v'));
+            if (TABHOOK[k]) TABHOOK[k](el, b.getAttribute('data-v'));
+          });
+          if (X[k]) X[k](el);
+          all.push(el);
+        });
+      } catch (e) { /* keep the plain steps if a demo fails */ }
+    });
+    if ('IntersectionObserver' in window) {
+      var o = new IntersectionObserver(function (es) { es.forEach(function (e) { e.target.classList.toggle('ln-on', e.isIntersecting); }); }, { rootMargin: '80px 0px', threshold: 0.01 });
+      all.forEach(function (el) { o.observe(el); });
+    } else all.forEach(function (el) { el.classList.add('ln-on'); });
+    try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
+  };
+  try { window.__denHowDemos(); } catch (e) { /* ignore */ }
+
   /* ---------- build, open, close ---------- */
   function build() {
     if (built) return; built = true;
@@ -19524,6 +19571,39 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   @supports (width: 1cqw) {
     html #screen-edit .edit-left .preview-card { width: min(calc(100cqw - 8px), calc((100cqh - 8px - 28px) * var(--sar, 0.3333) + 28px)) !important; }   /* as large as the left side allows, never taller than it, shape unchanged */
   }
+}
+@media (min-width: 701px) {
+  /* "Make it yours": a compact heading, and a clear gap under the Back / words / Print row so the home bar and browser toolbar never cover it */
+  html #screen-edit.screen:not([hidden]) { padding-bottom: calc(18px + max(env(safe-area-inset-bottom, 0px), 10px)); }
+  html #screen-edit #editTitle { font-size: clamp(1.25rem, 2.6vw, 1.7rem); line-height: 1.1; margin: 0 0 6px; }
+  html #screen-edit .edit-hint, html #screen-edit .sub { margin-top: 0; margin-bottom: 6px; }
+}
+@media (max-width: 700px) {
+  html #screen-edit #editTitle { font-size: clamp(1.3rem, 6vw, 1.7rem); margin-bottom: 6px; }
+  html #screen-edit.screen { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+}
+/* front page "How it works" with live demos: two cards per row (1 and 2 on top, 3 and 4 below) in portrait and on narrow screens, every demo scaled to fit its card */
+[data-how] .ln-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+[data-how] .ln-card, [data-how] .ln-demo { min-width: 0; max-width: 100%; }
+[data-how] .ln-card { padding: 8px 8px 12px; }
+[data-how] .ln-demo { min-height: 130px; padding: 6px; }
+[data-how] .ln-demo > * { zoom: .72; max-width: 100%; }
+[data-how] .ln-card h4 { font-size: 1.2rem; }
+[data-how] .ln-card p { font-size: .95rem; line-height: 1.25; }
+[data-how] .ln-demo[data-d="far"] > * { zoom: .5; }
+@media (min-width: 901px) and (orientation: landscape) { [data-how] .ln-demo[data-d="far"] > * { zoom: .55; } [data-how] .ln-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); } [data-how] .ln-demo > * { zoom: .8; } }
+@media (max-width: 520px) {
+  [data-how] .ln-demo > * { zoom: .56; }
+  [data-how] .ln-demo[data-d="far"] > * { zoom: .4; }
+  [data-how] .ln-card h4 { font-size: 1.05rem; } [data-how] .ln-card p { font-size: .85rem; }
+  #whHow .wh-carw { padding: 0 2px; }
+  #whHow .wh-arr { top: 70px; width: 30px; height: 30px; }
+  #whHow .wh-arr-l { left: -8px; } #whHow .wh-arr-r { right: -8px; }
+  #whHow.wh-sec { padding-left: 12px; padding-right: 12px; }
+}
+@media (max-width: 700px) {
+  /* tall art strips (Vintage Booth is 1:5) stay fully on screen on phones too */
+  html #screen-edit .edit-left .preview-card { width: min(62%, 230px, calc((100dvh - 330px) * var(--sar, 0.3333) + 28px)); min-width: 120px; }
 }
 </style>
 <script id="edit-lock-js">
