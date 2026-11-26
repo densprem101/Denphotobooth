@@ -2721,7 +2721,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       <section class="wh-sec" id="whFeat" aria-labelledby="whFeatH" hidden>
         <p class="wh-eyebrow" aria-hidden="true">Picked this week</p>
         <h2 class="wh-h" id="whFeatH">Featured Photos</h2>
-        <div class="ft-wrap"><div class="ft-track" id="ftTrack" tabindex="0" aria-label="Featured photo strips, scroll sideways"></div></div>
+        <div class="ft-wrap"><div class="ft-track" id="ftTrack" aria-label="Featured photo strips"></div></div>
       </section>
       <section class="wh-sec" id="whFaq" aria-labelledby="whFaqH">
         <p class="wh-eyebrow" aria-hidden="true">Got questions?</p>
@@ -9677,7 +9677,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     + '.own-out{width:100%;min-height:64px;box-sizing:border-box;margin-top:8px;border:1.5px dashed var(--ink,#3b2f2f);border-radius:10px;padding:6px 8px;font:12px/1.3 ui-monospace,Menlo,monospace;background:#fff;word-break:break-all;resize:vertical}.own-msg{font-size:.8rem;margin-top:6px;min-height:1em}.own-msg.err{color:#a3261c}';
   function ownerBuild() {
     if ($('ownM')) return $('ownM');
-    const st = document.createElement('style'); st.textContent = OWN_CSS + '.own-ft{display:grid;grid-template-columns:72px 1fr;gap:8px 10px;padding:8px;border:1.5px solid rgba(0,0,0,.18);border-radius:12px;background:#fff;margin-top:8px}.own-ft img{width:72px;height:96px;object-fit:cover;border-radius:6px;background:#eee}.own-ft input{width:100%;box-sizing:border-box;min-height:36px;margin:2px 0;font:inherit;border:1.5px solid rgba(0,0,0,.3);border-radius:8px;padding:2px 8px}.own-fb{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1}.own-fb .own-btn{margin-top:0;min-height:36px;padding:2px 10px}'; document.head.appendChild(st);
+    const st = document.createElement('style'); st.textContent = OWN_CSS + '.own-drop{border:2px dashed var(--ink,#3b2f2f);border-radius:12px;padding:14px;text-align:center;margin-top:8px;background:rgba(255,255,255,.5)}.own-drop.on{background:#cfe1f3}.own-hd img{-webkit-user-drag:none;pointer-events:none}.own-hd{grid-row:1/3;display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:none;cursor:grab;user-select:none}.own-ft.drag{opacity:.6;box-shadow:0 6px 14px rgba(0,0,0,.3);position:relative;z-index:2}.own-gr{font-size:20px;line-height:1;letter-spacing:-2px;opacity:.6}.own-ft.dr{grid-template-columns:72px 1fr}.own-sel{width:100%;min-height:40px;font:inherit;border:1.5px solid rgba(0,0,0,.3);border-radius:8px;padding:2px 8px;background:#fff}.own-ft{display:grid;grid-template-columns:72px 1fr;gap:8px 10px;padding:8px;border:1.5px solid rgba(0,0,0,.18);border-radius:12px;background:#fff;margin-top:8px}.own-ft img{width:72px;height:96px;object-fit:cover;border-radius:6px;background:#eee}.own-ft input{width:100%;box-sizing:border-box;min-height:36px;margin:2px 0;font:inherit;border:1.5px solid rgba(0,0,0,.3);border-radius:8px;padding:2px 8px}.own-fb{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1}.own-fb .own-btn{margin-top:0;min-height:36px;padding:2px 10px}'; document.head.appendChild(st);
     const m = document.createElement('div'); m.className = 'own-m'; m.id = 'ownM'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'ownT');
     const tool = (id, title, note, body) => '<div class="own-box"><b>' + title + '</b><div class="own-note">' + note + '</div>' + body + '<div class="own-msg" id="' + id + 'Msg"></div><textarea class="own-out" id="' + id + 'Out" readonly hidden></textarea><div id="' + id + 'Act" hidden><button type="button" class="own-btn" data-cp="' + id + 'Out">Copy</button> <button type="button" class="own-btn" data-cp="' + id + 'Say">Copy message</button><textarea id="' + id + 'Say" hidden></textarea></div></div>';
     m.innerHTML = '<div class="own-s" data-ox></div><div class="own-c"><div class="own-top"><button type="button" class="own-x" id="ownBack" hidden aria-label="Back">&larr;</button><h2 id="ownT">Owner panel</h2><button type="button" class="own-x" data-ox aria-label="Close">&times;</button></div>'
@@ -9694,7 +9694,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       + '<div id="ownBBox" hidden><div class="own-note" id="ownBUntil"></div><label>Recovery link</label><textarea class="own-out" id="ownBLink" readonly></textarea><button type="button" class="own-btn" data-cp="ownBLink">Copy link</button>'
       + '<label>Recovery code (paste under "Restore from link or code")</label><textarea class="own-out" id="ownBCode" readonly></textarea><button type="button" class="own-btn" data-cp="ownBCode">Copy code</button>'
       + '<label>Message to send the customer</label><textarea class="own-out" id="ownBText" readonly></textarea><button type="button" class="own-btn" data-cp="ownBText">Copy message</button></div></div></section>'
-      + '<section class="own-v" data-v="feat" hidden><div class="own-note">Photos here show on the front page for everybody. Only you can change them. Changes go live right away.</div><div class="own-box"><b>Add photos</b><label for="ownFC">Caption (optional)</label><input id="ownFC" type="text" maxlength="80" autocomplete="off" placeholder="Week 48 favorite"><label for="ownFU">Credit (optional)</label><input id="ownFU" type="text" maxlength="40" autocomplete="off" placeholder="@username"><input id="ownFF" type="file" accept="image/*" multiple hidden><button type="button" class="own-btn p" id="ownFAdd">Choose photos</button><div class="own-msg" id="ownFMsg"></div></div><div id="ownFList"></div><input id="ownFR" type="file" accept="image/*" hidden></section>'
+      + '<section class="own-v" data-v="feat" hidden><div class="own-note">Photos here show on the front page for everybody. Up to 6 photos fit on the front page at once. Credit = Instagram username (it becomes a link). Changes go live right away.</div><div class="own-box"><b>Add photos</b><label for="ownFC">Caption (optional)</label><input id="ownFC" type="text" maxlength="80" autocomplete="off" placeholder="Week 48 favorite"><label for="ownFU">Credit (optional)</label><input id="ownFU" type="text" maxlength="40" autocomplete="off" placeholder="Instagram username, e.g. neutralinthenines"><input id="ownFF" type="file" accept="image/*" multiple hidden><div class="own-drop" id="ownFDrop">Drag &amp; drop photos here<br><button type="button" class="own-btn p" id="ownFAdd">or choose photos</button></div><div class="own-msg" id="ownFMsg"></div></div><div class="own-box"><b>Animation (all photos)</b><select class="own-sel" id="ownFA" aria-label="Gallery animation"><option value="none">None</option><option value="fade">Fade up</option><option value="slide">Slide in</option><option value="zoom">Zoom in</option><option value="flip">Flip in</option><option value="bounce">Bouncy pop</option><option value="float">Gentle float</option><option value="sway">Swinging sway</option></select><label for="ownFB1">Background gradient: top color</label><input id="ownFB1" type="color" value="#eaf3fb"><label for="ownFB2">Bottom color</label><input id="ownFB2" type="color" value="#f3e9d6"><div class="own-fb" id="ownFPre" style="margin-top:6px"><button type="button" class="own-btn" data-pre="#eaf3fb,#f3e9d6">Sky &amp; beige</button><button type="button" class="own-btn" data-pre="#ffd9e6,#fff2cc">Peach pink</button><button type="button" class="own-btn" data-pre="#d9f2e3,#e8f1ff">Mint sky</button><button type="button" class="own-btn" data-pre="#e6dcff,#ffe3f1">Lilac</button></div></div><div class="own-note" style="margin-top:8px">Drag the &#8942;&#8942; handle to reorder.</div><div id="ownFList"></div><input id="ownFR" type="file" accept="image/*" hidden></section>'
       + '</div>';
     document.body.appendChild(m);
     const close = () => { m.hidden = true; document.body.style.removeProperty('overflow'); ownGo(''); };
@@ -9763,29 +9763,36 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     } catch (e) { box.innerHTML = '<div class="own-row"><span>Could not load. Tap Refresh.</span></div>'; }
   }
   /* ---- Featured Photos: public gallery on the front page (read-only, no login, no cookies sent) + the owner's manager ---- */
-  const FT = { items: [] };
+  const FT = { items: [], cfg: { anim: 'fade', bg1: '#eaf3fb', bg2: '#f3e9d6' } };
   const ftImg = (it) => '/api/featured/img/' + it.id + '?v=' + it.v;
+  const IGH = /^@?([A-Za-z0-9._]{1,30})$/;
   function ftRender() {
     const sec = $('whFeat'), tr = $('ftTrack'); if (!sec || !tr) return;
-    sec.hidden = !FT.items.length;
-    tr.innerHTML = FT.items.map((it, i) => '<button type="button" class="ft-card" data-i="' + i + '"><img loading="lazy" decoding="async" draggable="false" alt="' + ownEsc(it.caption || 'Featured photo strip') + '" src="' + ftImg(it) + '">' + (it.caption ? '<span class="ft-cap">' + ownEsc(it.caption) + '</span>' : '') + (it.credit ? '<span class="ft-cr">' + ownEsc(it.credit) + '</span>' : '') + '</button>').join('');
+    const n = FT.items.length, w = tr.parentNode; sec.hidden = !n;
+    tr.setAttribute('data-anim', FT.cfg.anim); tr.style.setProperty('--cm', n <= 3 ? Math.max(1, n) : n === 4 ? 2 : 3); tr.style.setProperty('--cd', Math.max(1, n));
+    w.style.setProperty('--ft1', FT.cfg.bg1); w.style.setProperty('--ft2', FT.cfg.bg2);
+    tr.innerHTML = FT.items.map((it, i) => {
+      const h = IGH.exec(it.credit || '');
+      const cr = it.credit ? '<span class="ft-cr">' + (h ? '<a href="https://www.instagram.com/' + encodeURIComponent(h[1]) + '/" target="_blank" rel="noopener noreferrer">@' + ownEsc(h[1]) + '</a>' : ownEsc(it.credit)) + '</span>' : '';
+      return '<div class="ft-card" style="--i:' + i + '"><button type="button" class="ft-pic" data-i="' + i + '" aria-label="View ' + ownEsc(it.caption || 'featured photo') + '"><img loading="lazy" decoding="async" draggable="false" alt="' + ownEsc(it.caption || 'Featured photo strip') + '" src="' + ftImg(it) + '"></button>' + (it.caption ? '<span class="ft-cap">' + ownEsc(it.caption) + '</span>' : '') + cr + '</div>';
+    }).join('');
   }
   async function featLoad() {
-    try { const r = await fetch('/api/featured', { credentials: 'omit', cache: 'no-store' }), j = await r.json(); if (r.ok && j.ok) { FT.items = j.items || []; ftRender(); } } catch (e) { /* the gallery just stays as it is */ }
+    try { const r = await fetch('/api/featured', { credentials: 'omit', cache: 'no-store' }), j = await r.json(); if (r.ok && j.ok) { FT.items = j.items || []; FT.cfg = j.cfg || FT.cfg; ftRender(); } } catch (e) { /* the gallery just stays as it is */ }
   }
   function ftLightbox(i) {
     const it = FT.items[i]; if (!it) return;
     let lb = $('ftLb'); if (!lb) { lb = document.createElement('div'); lb.className = 'ft-lb'; lb.id = 'ftLb'; lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.innerHTML = '<img alt=""><p></p><button type="button" aria-label="Close">Close</button>'; document.body.appendChild(lb); lb.addEventListener('click', () => { lb.hidden = true; }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; }); }
     lb.querySelector('img').src = ftImg(it); lb.querySelector('p').textContent = [it.caption, it.credit].filter(Boolean).join('  ·  '); lb.hidden = false;
   }
-  document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('.ft-card'); if (c) ftLightbox(+c.getAttribute('data-i')); });
+  document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('.ft-pic'); if (c) ftLightbox(+c.getAttribute('data-i')); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', featLoad); else setTimeout(featLoad, 0);
   const ftOwn = async (path, opt, msgId) => {                                  // every change goes to the owner-only routes; the server re-checks who is asking
     const h = { 'X-Den-Cloud': '1' }; if (opt.json) h['Content-Type'] = 'application/json';
     try {
       const r = await fetch(path, { method: opt.method || 'POST', credentials: 'same-origin', cache: 'no-store', headers: h, body: opt.json ? JSON.stringify(opt.json) : opt.body }), j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.ok) { const e = { full: 'The gallery is full (24 photos). Delete one first.', too_large: 'That photo is too big.', bad_type: 'Use a JPG, PNG or WebP photo.' }; const m = $(msgId); if (m) { m.textContent = e[j.error] || 'Could not save. Try again.'; m.className = 'own-msg err'; } return null; }
-      FT.items = j.items || FT.items; ftRender(); featOwnerDraw(); return j;
+      if (!r.ok || !j.ok) { const e = { full: 'The gallery is full (6 photos). Delete one first.', too_large: 'That photo is too big.', bad_type: 'Use a JPG, PNG or WebP photo.' }; const m = $(msgId); if (m) { m.textContent = e[j.error] || 'Could not save. Try again.'; m.className = 'own-msg err'; } return null; }
+      FT.items = j.items || FT.items; FT.cfg = j.cfg || FT.cfg; ftRender(); featOwnerDraw(); return j;
     } catch (e) { const m = $(msgId); if (m) { m.textContent = 'No connection. Try again.'; m.className = 'own-msg err'; } return null; }
   };
   const ftShrink = (file) => new Promise((res, rej) => {                       // keeps uploads small: longest side 1600px, JPEG
@@ -9796,15 +9803,34 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function featOwnerDraw() {
     const box = $('ownFList'); if (!box) return;
     const n = FT.items.length;
-    box.innerHTML = n ? FT.items.map((it, i) => '<div class="own-ft" data-id="' + it.id + '"><img alt="" src="' + ftImg(it) + '"><div><input data-f="caption" maxlength="80" placeholder="Caption" value="' + ownEsc(it.caption) + '" aria-label="Caption"><input data-f="credit" maxlength="40" placeholder="Credit, e.g. @username" value="' + ownEsc(it.credit) + '" aria-label="Credit"></div><div class="own-fb"><button type="button" class="own-btn p" data-fa="save">Save</button><button type="button" class="own-btn" data-fa="up"' + (i === 0 ? ' disabled' : '') + ' aria-label="Move earlier">&uarr;</button><button type="button" class="own-btn" data-fa="down"' + (i === n - 1 ? ' disabled' : '') + ' aria-label="Move later">&darr;</button><button type="button" class="own-btn" data-fa="rep">Replace photo</button><button type="button" class="own-btn" data-fa="del">Delete</button></div></div>').join('') : '<div class="own-note">No featured photos yet.</div>';
+    box.innerHTML = n ? FT.items.map((it, i) => '<div class="own-ft" data-id="' + it.id + '"><div class="own-hd" data-h aria-label="Drag to reorder" role="img"><span class="own-gr">&#8942;&#8942;</span><img alt="" draggable="false" src="' + ftImg(it) + '"></div><div><input data-f="caption" maxlength="80" placeholder="Caption" value="' + ownEsc(it.caption) + '" aria-label="Caption"><input data-f="credit" maxlength="40" placeholder="Instagram username (links to IG)" value="' + ownEsc(it.credit) + '" aria-label="Credit"></div><div class="own-fb"><button type="button" class="own-btn p" data-fa="save">Save</button><button type="button" class="own-btn" data-fa="rep">Replace photo</button><button type="button" class="own-btn" data-fa="del">Delete</button></div></div>').join('') : '<div class="own-note">No featured photos yet.</div>';
+    const sl = $('ownFA'); if (sl) sl.value = FT.cfg.anim; if ($('ownFB1') && document.activeElement !== $('ownFB1') && document.activeElement !== $('ownFB2')) { $('ownFB1').value = FT.cfg.bg1; $('ownFB2').value = FT.cfg.bg2; }
   }
   async function featOwnerLoad() { await featLoad(); featOwnerDraw(); }
   let ftRepId = '';
   function featOwnerWire() {
     if (featOwnerWire.done || !$('ownFAdd')) return; featOwnerWire.done = true;
     $('ownFAdd').addEventListener('click', () => $('ownFF').click());
-    $('ownFF').addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files || []); e.target.value = ''; const m = $('ownFMsg'); m.className = 'own-msg'; let ok = 0;
+    const dz = $('ownFDrop'), _u = 0;
+    ['dragenter', 'dragover'].forEach((n) => dz.addEventListener(n, (e) => { e.preventDefault(); dz.classList.add('on'); }));
+    ['dragleave', 'drop'].forEach((n) => dz.addEventListener(n, (e) => { e.preventDefault(); dz.classList.remove('on'); }));
+    dz.addEventListener('drop', (e) => { const fs = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter((f) => /^image\//.test(f.type)); if (fs.length) ftUpload(fs); });
+    $('ownFA').addEventListener('change', async (e) => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving animation...'; if (await ftOwn('/api/owner/featured/cfg', { json: { anim: e.target.value } }, 'ownFMsg')) m.textContent = 'Animation saved. Live now.'; });
+    let bgT = 0; const bgSave = (a, b) => { $('ownFB1').value = a; $('ownFB2').value = b; clearTimeout(bgT); bgT = setTimeout(async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving colors...'; if (await ftOwn('/api/owner/featured/cfg', { json: { bg1: a, bg2: b } }, 'ownFMsg')) m.textContent = 'Colors saved. Live now.'; }, 500); };
+    $('ownFB1').addEventListener('input', () => bgSave($('ownFB1').value, $('ownFB2').value)); $('ownFB2').addEventListener('input', () => bgSave($('ownFB1').value, $('ownFB2').value));
+    $('ownFPre').addEventListener('click', (e) => { const b = e.target.closest('[data-pre]'); if (b) { const [a, c] = b.getAttribute('data-pre').split(','); bgSave(a, c); } });
+    let dr = null;                                                             // drag to reorder: works with mouse and touch (handle only, so the page still scrolls)
+    $('ownFList').addEventListener('pointerdown', (e) => { const h = e.target.closest('[data-h]'); if (!h) return; dr = h.closest('.own-ft'); dr.classList.add('drag'); try { h.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } e.preventDefault(); });
+    $('ownFList').addEventListener('pointermove', (e) => {
+      if (!dr) return; const rows = Array.from($('ownFList').querySelectorAll('.own-ft'));
+      for (const r of rows) { if (r === dr) continue; const b = r.getBoundingClientRect(); if (e.clientY > b.top && e.clientY < b.bottom) { const after = rows.indexOf(r) > rows.indexOf(dr); r.parentNode.insertBefore(dr, after ? r.nextSibling : r); break; } }
+      const c = $('ownFList').closest('.own-c'); if (c) { const cb = c.getBoundingClientRect(); if (e.clientY < cb.top + 50) c.scrollTop -= 12; else if (e.clientY > cb.bottom - 50) c.scrollTop += 12; }
+    });
+    const dEnd = async () => { if (!dr) return; dr.classList.remove('drag'); dr = null; const ids = Array.from($('ownFList').querySelectorAll('.own-ft')).map((r) => r.getAttribute('data-id')); if (ids.join() === FT.items.map((x) => x.id).join()) return; const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving order...'; if (await ftOwn('/api/owner/featured/order', { json: { ids } }, 'ownFMsg')) m.textContent = 'Order saved. Live now.'; else featOwnerDraw(); };
+    $('ownFList').addEventListener('pointerup', dEnd); $('ownFList').addEventListener('pointercancel', dEnd);
+    $('ownFF').addEventListener('change', (e) => { const f = Array.from(e.target.files || []); e.target.value = ''; ftUpload(f); });
+    async function ftUpload(files) {
+      const m = $('ownFMsg'); m.className = 'own-msg'; let ok = 0;
       for (let i = 0; i < files.length; i++) {
         m.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '...';
         let b; try { b = await ftShrink(files[i]); } catch (x) { m.textContent = 'Could not read ' + files[i].name; m.className = 'own-msg err'; continue; }
@@ -9812,7 +9838,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         if (await ftOwn('/api/owner/featured' + q, { body: b }, 'ownFMsg')) ok++; else break;
       }
       if (ok) { m.textContent = ok + ' photo' + (ok === 1 ? '' : 's') + ' added. Live now.'; $('ownFC').value = ''; }
-    });
+    }
     $('ownFR').addEventListener('change', async (e) => {
       const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f || !ftRepId) return; const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Replacing...';
       let b; try { b = await ftShrink(f); } catch (x) { m.textContent = 'Could not read that photo.'; m.className = 'own-msg err'; return; }
@@ -19941,13 +19967,31 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
 </script>
 <style id="feat-css">
 #whFeat[hidden]{display:none}
-.ft-wrap{margin:14px 0 0}
-.ft-track{display:flex;gap:16px;overflow-x:auto;padding:10px 6px 18px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
-.ft-card{flex:0 0 auto;width:clamp(150px,42vw,220px);scroll-snap-align:center;margin:0;padding:10px 10px 12px;border:2px solid #3b2f2f;border-radius:16px;box-shadow:3px 5px 0 rgba(59,47,47,.18);background:linear-gradient(180deg,#eaf3fb 0,#fffdf7 55%,#f3e9d6 100%);cursor:zoom-in;font:inherit;color:#3b2f2f;text-align:center}
-.ft-card:focus-visible{outline:3px solid #6aa7d8;outline-offset:2px}
-.ft-card img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:8px;background:#fff}
-.ft-cap{display:block;margin-top:8px;font-weight:700;font-size:.9rem;line-height:1.25;word-break:break-word}
-.ft-cr{display:block;margin-top:2px;font-size:.78rem;opacity:.75;word-break:break-word}
+.ft-wrap{margin:14px 0 0;padding:14px 10px 10px;border-radius:18px;border:2px solid #3b2f2f;background:linear-gradient(160deg,var(--ft1,#eaf3fb),var(--ft2,#f3e9d6))}
+.ft-track{display:grid;grid-template-columns:repeat(var(--cm,3),minmax(0,1fr));gap:10px;align-items:start}
+@media (min-width:700px){.ft-track{grid-template-columns:repeat(var(--cd,6),minmax(0,1fr));gap:16px}}
+.ft-card{position:relative;margin:0;padding:6px 6px 8px;border:2px solid #3b2f2f;border-radius:12px;box-shadow:2px 4px 0 rgba(59,47,47,.2);background:#fffdf7;color:#3b2f2f;text-align:center;transform:rotate(var(--r,0deg));transition:transform .25s cubic-bezier(.3,1.6,.5,1),box-shadow .25s}
+.ft-card:nth-child(odd){--r:-1.6deg}.ft-card:nth-child(even){--r:1.6deg}
+.ft-card:hover{transform:rotate(0) translateY(-4px) scale(1.04);box-shadow:3px 8px 0 rgba(59,47,47,.22);z-index:2}
+.ft-pic{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;font:inherit}
+.ft-pic:focus-visible,.ft-cr a:focus-visible{outline:3px solid #6aa7d8;outline-offset:2px}
+.ft-pic img{display:block;width:100%;height:auto;aspect-ratio:1/3;object-fit:cover;border-radius:6px;background:#fff}
+.ft-cap{display:block;margin-top:5px;font-weight:700;font-size:clamp(.62rem,2.4vw,.85rem);line-height:1.2;word-break:break-word}
+.ft-cr{display:block;margin-top:2px;font-size:clamp(.55rem,2vw,.78rem);overflow-wrap:anywhere}
+.ft-cr a{color:#2f6ea5;font-weight:700;text-decoration:none;border-bottom:1.5px dotted currentColor}
+.ft-cr a:hover{color:#c2566f}
+.ft-track[data-anim]:not([data-anim=none]):not([data-anim=float]):not([data-anim=sway]) .ft-card{animation:var(--an,ftFade) .8s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0)*110ms)}
+.ft-track[data-anim=fade]{--an:ftFade}.ft-track[data-anim=slide]{--an:ftSlide}.ft-track[data-anim=zoom]{--an:ftZoom}.ft-track[data-anim=flip]{--an:ftFlip}.ft-track[data-anim=bounce]{--an:ftBounce}
+.ft-track[data-anim=float] .ft-card{animation:ftFloat 3.6s ease-in-out infinite;animation-delay:calc(var(--i,0)*350ms)}
+.ft-track[data-anim=sway] .ft-card{transform-origin:50% 0;animation:ftSway 3.4s ease-in-out infinite;animation-delay:calc(var(--i,0)*300ms)}
+@keyframes ftFade{from{opacity:0;transform:translateY(16px) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
+@keyframes ftSlide{from{opacity:0;transform:translateX(50px) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
+@keyframes ftZoom{from{opacity:0;transform:scale(.6) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
+@keyframes ftFlip{from{opacity:0;transform:perspective(600px) rotateY(-80deg)}to{opacity:1;transform:rotate(var(--r))}}
+@keyframes ftBounce{0%{opacity:0;transform:translateY(-40px) scale(.7) rotate(var(--r))}60%{opacity:1;transform:translateY(8px) scale(1.04) rotate(var(--r))}80%{transform:translateY(-4px) rotate(var(--r))}100%{transform:rotate(var(--r))}}
+@keyframes ftFloat{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-8px) rotate(calc(var(--r) * -1))}}
+@keyframes ftSway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.ft-track .ft-card{animation:none!important}}
 .ft-lb{position:fixed;inset:0;z-index:10040;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));background:rgba(30,40,55,.82)}
 .ft-lb[hidden]{display:none}
 .ft-lb img{max-width:min(92vw,520px);max-height:76vh;object-fit:contain;border-radius:10px;background:#fff;border:2px solid #fff}
