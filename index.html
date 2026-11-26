@@ -5389,10 +5389,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const v = video();
     if (!v || !v.videoWidth || !liveType()) return null;       // no recorder on this browser: skip buffering
     const L = CONFIG.live;
-    const fr = slotFrame(idx), w = L.frameWidth, h = Math.round(w * fr.h / fr.w), frames = [];
+    const fr = slotFrame(idx), w = L.frameWidth, h = Math.round(w * fr.h / fr.w), frames = [], hf = duoHalf(), w2 = hf ? Math.round(w / 2) : w; frames.__half = hf;
     const grab = () => {
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
-      drawCover(c.getContext('2d'), ...camArgs(v), 0, 0, w, h, camMirror(), state.camZoom || 1);
+      const c = document.createElement('canvas'); c.width = w2; c.height = h;
+      drawCover(c.getContext('2d'), ...camArgs(v), 0, 0, w2, h, camMirror(), state.camZoom || 1);
       frames.push(c);
     };
     grab();
@@ -5919,19 +5919,21 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     } catch (e) { /* fall back to the layout's own frame */ }
     return dflt;
   }
+  /* Long-distance booth: each person is photographed for THEIR OWN half of the frame (half the width, full height), so a face and upper body fill their half instead of a thin slice of the wide frame. The two halves are then joined into the full frame. */
+  const duoHalf = () => { try { return !!(window.DenBooth && DenBooth.active() && DenBooth.connected() && state.layoutId !== 'idcard'); } catch (e) { return false; } };
   function takePhoto(idx) {
     try { if (window.DenSfx && DenSfx.shutter) DenSfx.shutter(); } catch (e) { /* sound is optional */ }
     const v = video();
     const c = document.createElement('canvas');
-    const fr = slotFrame(idx);
-    c.width = fr.w; c.height = fr.h;
+    const fr = slotFrame(idx), hf = duoHalf();
+    c.width = hf ? Math.max(24, Math.round(fr.w / 2)) : fr.w; c.height = fr.h;
     const ca = camArgs(v, true), mir = camMirror(), zm = state.camZoom || 1;
-    drawCover(c.getContext('2d'), ca[0], ca[1], ca[2], 0, 0, fr.w, fr.h, mir, zm);
+    drawCover(c.getContext('2d'), ca[0], ca[1], ca[2], 0, 0, c.width, fr.h, mir, zm);
     const wd = mkWide(ca[0], ca[1], ca[2], mir, zm);
     const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
     setPhoto(idx, c, wd);
     try { if (window.DenAR && DenAR.composed() && state.photos[idx]) state.photos[idx].arBaked = true; } catch (e) { /* optional */ }
-    try { if (window.DenBooth) DenBooth.onShot(idx, c); } catch (e) { /* the online booth is optional */ }
+    try { if (window.DenBooth) DenBooth.onShot(idx, c, hf); } catch (e) { /* the online booth is optional */ }
   }
 
   function showCount(n) {
@@ -6352,7 +6354,8 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     c.width = w; c.height = h;
     const ctx = c.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
-    { let sc = L ? L.canvas : photo.canvas; const wd = L ? L.wide : photo.wide; if (wd && Math.abs((sc.width / sc.height) / (w / h) - 1) > 0.02) sc = wd;     // a window of another shape: crop from the whole camera picture
+    { let sc = L ? L.canvas : photo.canvas; const wd = L ? L.wide : photo.wide; if (wd && Math.abs((sc.width / sc.height) / (w / h) - 1) > 0.02) sc = wd;
+      if (!L && photo.online && Math.abs((photo.canvas.width / photo.canvas.height) / (w / h) - 1) > 0.02) { const dz = duoCanvas(photo, w, h); if (dz) sc = panCanvas(dz, photo.pan); }      // long-distance: lay both people out for this window     // a window of another shape: crop from the whole camera picture
       const sw = sc.width, sh = sc.height, sr = sw / sh, dr = w / h;         // keep the photo's proportions: crop to the slot's shape, never squash or stretch
       let cx = 0, cy = 0, cw = sw, ch = sh;
       if (Math.abs(sr / dr - 1) > 0.002) { if (sr > dr) { cw = sh * dr; cx = (sw - cw) / 2; } else { ch = sw / dr; cy = (sh - ch) / 2; } }
@@ -7158,10 +7161,25 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (!state.hQuotes) { const a = HIRONO_QUOTES.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } state.hQuotes = a.slice(0, 4); }
     return state.hQuotes;
   }
+  /* Long-distance photos keep both people's own pictures (p.raws). Whatever shape a template's window has, the two people are laid out for THAT window (side by side, or stacked in a narrow one), each one cropped to its own half with the head kept in view, so the partner is never cut out. */
+  function duoCanvas(p, w, h) {
+    const r = p && p.online && p.raws; if (!r || r.length !== 2 || !r[0] || !r[1] || !(w > 0) || !(h > 0)) return null;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+    const side = w / h >= 0.8, gap = Math.max(2, Math.round(Math.min(w, h) / 150)), a = p.mineLeft === false ? r[1] : r[0], b = p.mineLeft === false ? r[0] : r[1];
+    const cv = (src, dx, dy, dw, dh) => {
+      const sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height, sr = sw / sh, dr = dw / dh; let cw = sw, ch = sh, cx = 0, cy = 0;
+      if (sr > dr) { cw = sh * dr; cx = (sw - cw) / 2; } else { ch = sw / dr; cy = (sh - ch) * 0.3; }
+      x.drawImage(src, cx, cy, cw, ch, dx, dy, dw, dh);
+    };
+    x.fillStyle = '#fff';
+    if (side) { const hw = Math.round(w / 2); cv(a, 0, 0, hw, h); cv(b, hw, 0, w - hw, h); x.fillRect(hw - gap / 2, 0, gap, h); }
+    else { const hh = Math.round(h / 2); cv(a, 0, 0, w, hh); cv(b, 0, hh, w, h - hh); x.fillRect(0, hh - gap / 2, w, gap); }
+    return c;
+  }
   const hirCover = new Map();
   function hirPhoto(p, w, h) {          // crop the shot to fill the camera screen (cover), never stretch it
     const key = p.id + '|' + w + 'x' + h; let c = hirCover.get(key);
-    if (!c) { c = document.createElement('canvas'); c.width = w; c.height = h; drawCover(c.getContext('2d'), p.canvas, p.canvas.width, p.canvas.height, 0, 0, w, h, false); if (hirCover.size > 40) hirCover.clear(); hirCover.set(key, c); }
+    if (!c) { c = (Math.abs(p.canvas.width / p.canvas.height / (w / h) - 1) > 0.02 && duoCanvas(p, w, h)) || null; if (!c) { c = document.createElement('canvas'); c.width = w; c.height = h; drawCover(c.getContext('2d'), p.canvas, p.canvas.width, p.canvas.height, 0, 0, w, h, false); } if (hirCover.size > 40) hirCover.clear(); hirCover.set(key, c); }
     return { id: 'hir' + key, canvas: c };
   }
   PAINT.hirono = {
@@ -11551,11 +11569,11 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   }
 
   /** The online booth swaps in the two-person picture without touching any other booth behaviour. */
-  function swapPhoto(idx, canvas, raws) {
+  function swapPhoto(idx, canvas, raws, mineLeft) {
     const p = state.photos[idx]; if (!p) return;
     const tw = CONFIG.thumb.width, t = document.createElement('canvas'); t.width = tw; t.height = Math.round(tw * canvas.height / canvas.width);
     t.getContext('2d').drawImage(canvas, 0, 0, t.width, t.height);
-    p.canvas = canvas; p.wide = canvas; if (!(p.frames && p.frames.__duo)) p.frames = null; p.online = true; p.raws = raws || []; p.thumb = t.toDataURL('image/jpeg', 0.82);
+    p.canvas = canvas; p.wide = canvas; if (!(p.frames && p.frames.__duo)) p.frames = null; p.online = true; p.raws = raws || []; p.mineLeft = mineLeft !== false; filterCache.clear(); hirCover.clear(); p.thumb = t.toDataURL('image/jpeg', 0.82);
     renderSlots(); updateCaptureUI();
   }
   window.__denApp = { state, show, toast, runSequence, enterEdit, swapPhoto, redo, schedulePreview, syncStickerUI };   // the only door between the booth and the online-booth module
@@ -14389,8 +14407,8 @@ body.db-modal-open{overflow:hidden}
 .db-status{display:none;font-size:.72rem;opacity:.75;line-height:1.2}
 body[data-screen="setup"] .db-status,body:not(.db-connected) .db-status{display:block}
 .db-x::before,.db-x::after{content:none !important}
-.db-tile{position:absolute;z-index:9;top:8px;right:8px;width:clamp(86px,30%,190px);aspect-ratio:3/4;border:2px solid var(--ink);border-radius:10px;overflow:hidden;background:#222;box-shadow:2px 3px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
-.db-tile[hidden]{display:none}#viewfinder .db-tile #dbRemote{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transform:none;visibility:visible}
+.db-tile{position:absolute;z-index:9;top:8px;right:8px;width:clamp(120px,46%,340px);max-height:calc(100% - 16px);aspect-ratio:3/4;border:2px solid var(--ink);border-radius:10px;overflow:hidden;background:#222;box-shadow:2px 3px 0 rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation}
+.db-tile[hidden]{display:none}#viewfinder .db-tile #dbRemote{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block;transform:none;visibility:visible}
 .db-tag{position:absolute;left:4px;bottom:4px;max-width:calc(100% - 8px);padding:1px 8px;border-radius:99px;background:rgba(251,247,238,.92);color:#2b3340;font-size:.7rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .db-wait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:.72rem;opacity:.7}
 .db-chatbtn{position:fixed;z-index:80;left:8px;bottom:max(10px,env(safe-area-inset-bottom,0px));min-height:42px;padding:4px 16px;font:inherit;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:99px;box-shadow:2px 3px 0 var(--blue);cursor:pointer;touch-action:manipulation}
@@ -14662,6 +14680,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     document.body.classList.toggle('db-connected', up);
     var dot = $('dbDot'); if (dot) dot.className = 'db-dot ' + (up ? 'is-up' : s === 'slow' ? 'is-slow' : '');
     setStatus(up ? (R.role === 'host' ? 'Connected. Pick a layout, then Proceed.' : 'Connected. Your host starts the booth.') : s === 'slow' ? 'Connection is unstable. Reconnecting...' : (R.role === 'host' ? 'Waiting for your person to join...' : 'Connecting...'));
+    if (up && !R.autoSplit) { R.autoSplit = true; setSplit(true, false); }          // first connection: both people are shown big and side by side, the same way the photo is made (the Split / Whole button still toggles it)
     var t = $('dbTile'); if (t) t.hidden = !up; paintBar(); screenChanged();
   }
   function setStatus(t) { var e = $('dbStatus'); if (e) e.textContent = t; }
@@ -14732,10 +14751,10 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     x.drawImage(src, cx, cy, cw, ch, dx, dy, dw, dh);
   }
   function grabRemote() { var v = $('dbRemote'); if (!v || !v.videoWidth) return null; var c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; try { c.getContext('2d').drawImage(v, 0, 0); } catch (e) { return null; } return c; }
-  function onShot(idx, c) {
+  function onShot(idx, c, half) {
     if (!R || !dcOpen() || !A || A.state.layoutId === 'idcard') return;
     var k = R.seq[idx] = (R.seq[idx] || 0) + 1, photo = A.state.photos[idx];
-    R.mine[idx + ':' + k] = { c: c, id: photo && photo.id, fb: grabRemote() };
+    R.mine[idx + ':' + k] = { c: c, id: photo && photo.id, fb: grabRemote(), half: !!half };
     sendImg(idx, k, c);
     setTimeout(function () { if (R) tryCompose(idx, k, true); }, 7000);            // partner's photo never arrived: use what their video showed
     tryCompose(idx, k);
@@ -14745,13 +14764,13 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     var theirs = R.shots['p' + key] || (late && mine.fb); if (!theirs) return;
     delete R.mine[key]; delete R.shots['p' + key];
     var cur = A.state.photos[idx]; if (!cur || cur.id !== mine.id) return;          // retaken meanwhile
-    var W = mine.c.width, H = mine.c.height, c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+    var mw = mine.c.width, W = mine.half ? mw * 2 : mw, H = mine.c.height, c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
     var tw = theirs.naturalWidth || theirs.width, th = theirs.naturalHeight || theirs.height, half = Math.round(W / 2), hostLeft = R.role === 'host';
-    cover(x, hostLeft ? mine.c : theirs, hostLeft ? W : tw, hostLeft ? H : th, 0, 0, half, H);
-    cover(x, hostLeft ? theirs : mine.c, hostLeft ? tw : W, hostLeft ? th : H, half, 0, W - half, H);
+    cover(x, hostLeft ? mine.c : theirs, hostLeft ? mw : tw, hostLeft ? H : th, 0, 0, half, H);
+    cover(x, hostLeft ? theirs : mine.c, hostLeft ? tw : mw, hostLeft ? th : H, half, 0, W - half, H);
     x.fillStyle = 'rgba(255,255,255,.9)'; x.fillRect(half - 1, 0, Math.max(2, Math.round(W / 300)), H);
     var raw2 = document.createElement('canvas'); raw2.width = tw; raw2.height = th; raw2.getContext('2d').drawImage(theirs, 0, 0);
-    A.swapPhoto(idx, c, [mine.c, raw2]);
+    A.swapPhoto(idx, c, [mine.c, raw2], hostLeft);
   }
 
   /* ---------- one shared screen: split view, flash, full view and retake follow whoever touches them ---------- */
@@ -14787,8 +14806,8 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   function cellOf(f) { var w = Math.floor(f.width / 2), c = document.createElement('canvas'); c.width = w; c.height = f.height; cover(c.getContext('2d'), f, f.width, f.height, 0, 0, w, f.height); return c; }
   function onFrames(idx, frames) {
     if (!R || !dcOpen() || !A || A.state.layoutId === 'idcard' || !frames || frames.length < 2) return;
-    var k = R.seq[idx] || 1, key = idx + ':' + k, photo = A.state.photos[idx], cells = frames.map(cellOf);
-    R.myFr[key] = { cells: cells, id: photo && photo.id, w: frames[0].width, h: frames[0].height };
+    var k = R.seq[idx] || 1, key = idx + ':' + k, photo = A.state.photos[idx], cells = frames.__half ? frames.slice() : frames.map(cellOf);
+    R.myFr[key] = { cells: cells, id: photo && photo.id, w: frames.__half ? frames[0].width * 2 : frames[0].width, h: frames[0].height };
     cells.forEach(function (c, i) { dcSend({ t: 'fr', idx: idx, k: k, i: i, n: cells.length, d: c.toDataURL('image/jpeg', 0.62) }); });
     tryFrames(key);
   }
