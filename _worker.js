@@ -625,8 +625,8 @@ function sniffImage(u) {
 const featText = (v, n) => String(v == null ? '' : v).normalize('NFKC').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 const FEAT_ANIMS = ['none', 'fade', 'slide', 'zoom', 'flip', 'float', 'bounce', 'sway'], HEX = /^#[0-9a-fA-F]{6}$/;
 const featCfg = async (env) => {
-  const d = { anim: 'fade', bg1: '#eaf3fb', bg2: '#f3e9d6' };
-  try { const o = await env.FILES.get('featured/_cfg'); if (o) { const c = JSON.parse(o.text ? await o.text() : '') || {}; if (FEAT_ANIMS.includes(c.anim)) d.anim = c.anim; if (HEX.test(c.bg1)) d.bg1 = c.bg1; if (HEX.test(c.bg2)) d.bg2 = c.bg2; } } catch (e) { /* defaults */ }
+  const d = { anim: 'fade', speed: 5, mode: 'gradient', bg1: '#eaf3fb', bg2: '#f3e9d6', bg3: '', ang: 160 };
+  try { const o = await env.FILES.get('featured/_cfg'); if (o) { const c = JSON.parse(o.text ? await o.text() : '') || {}; if (FEAT_ANIMS.includes(c.anim)) d.anim = c.anim; if (HEX.test(c.bg1)) d.bg1 = c.bg1; if (HEX.test(c.bg2)) d.bg2 = c.bg2; if (c.bg3 === '' || HEX.test(c.bg3)) d.bg3 = c.bg3 || ''; if (c.mode === 'solid' || c.mode === 'gradient') d.mode = c.mode; const sp = Number(c.speed), an = Number(c.ang); if (sp >= 1 && sp <= 10) d.speed = Math.round(sp); if (an >= 0 && an <= 360) d.ang = Math.round(an); } } catch (e) { /* defaults */ }
   return d;
 };
 async function featuredPublic(req, env, url, path) {                // read-only, no login, no cookies
@@ -658,8 +658,11 @@ async function featuredOwner(req, env, url, path) {                 // only reac
     if (path === '/api/owner/featured/cfg' && req.method === 'POST') {        // animation + background colours for the whole gallery
       let b; try { b = await req.json(); } catch (e) { return fail(400, 'bad_request'); } b = b || {}; const c = await featCfg(env);
       if (b.anim != null) { if (!FEAT_ANIMS.includes(String(b.anim))) return fail(400, 'bad_anim'); c.anim = String(b.anim); }
-      if (b.bg1 != null) { if (!HEX.test(String(b.bg1))) return fail(400, 'bad_color'); c.bg1 = String(b.bg1); }
-      if (b.bg2 != null) { if (!HEX.test(String(b.bg2))) return fail(400, 'bad_color'); c.bg2 = String(b.bg2); }
+      for (const k of ['bg1', 'bg2']) if (b[k] != null) { if (!HEX.test(String(b[k]))) return fail(400, 'bad_color'); c[k] = String(b[k]); }
+      if (b.bg3 != null) { if (b.bg3 !== '' && !HEX.test(String(b.bg3))) return fail(400, 'bad_color'); c.bg3 = String(b.bg3); }
+      if (b.mode != null) { if (b.mode !== 'solid' && b.mode !== 'gradient') return fail(400, 'bad_mode'); c.mode = b.mode; }
+      if (b.speed != null) { const v = Number(b.speed); if (!(v >= 1 && v <= 10)) return fail(400, 'bad_speed'); c.speed = Math.round(v); }
+      if (b.ang != null) { const v = Number(b.ang); if (!(v >= 0 && v <= 360)) return fail(400, 'bad_angle'); c.ang = Math.round(v); }
       await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } });
       return json({ ok: true, items: await featList(env), cfg: c });
     }
