@@ -242,6 +242,7 @@ async function authRegister(req, env, user) {
   const email = String(b.email || '').normalize('NFKC').trim().toLowerCase(), pw = String(b.password || ''), name = String(b.name || '').trim().slice(0, 40);
   if (!EMAIL_RE.test(email) || email.length > 254) return fail(400, 'bad_email');
   if (pw.length < 6 || pw.length > 100) return fail(400, 'bad_password');
+  if (email === OWNER_EMAIL) return fail(403, 'reserved');                              // reserved for the verified owner: only Google sign-in can open this account
   const keys = await throttleKeys(req, email); if (await isLocked(env, keys)) return fail(429, 'too_many');
   const row = await env.DB.prepare('SELECT id, email, name, picture, password_hash FROM users WHERE LOWER(email) = ?').bind(email).first();
   if (row) {
@@ -525,6 +526,87 @@ async function shareRoute(req, env, url, path) {
   } catch (e) { shareReady = null; log('share_error', { path, message: String(e && e.message) }); return fail(500, 'server_error'); }
 }
 
+/* ---------- 6d. Owner access (Part 1) ----------
+   The owner is ONE verified person: densprem02@gmail.com signed in through Google (the account must have a Google identity AND a verified email).
+   Everything under /api/owner/ answers 404 to anybody else, so the panel is invisible to every other user and to signed-out visitors.
+   - /api/owner/me      { owner: true, signing: true|false }
+   - /api/owner/visits  names, emails and visit times of signed-in people. NEVER photos, archives or any stored file.
+   - /api/owner/sign    makes a Den+ key, a password reset code or an account recovery link with the SAME formats and the SAME private key your key maker uses.
+                        The private key lives only in the Cloudflare secret DEN_SIGN_JWK (never in the website or the browser).
+   Nothing here reads or writes a login cookie, a token, a session or the users table, so every existing login keeps working. ---------- */
+const OWNER_EMAIL = 'densprem02@gmail.com';
+const DEN_PUB = 'BDG-UjAPDeCTpPia6ZX6jsXpA032zmQSgG6ntOn8gQ3KSwGze25l-88qQq5-L9LDX5-iLGPe4ZXuYluKrNu2Xbg';   // same public key the website checks codes with
+async function ownerOk(env, user) {
+  try {
+    if (!user || String(user.email || '').trim().toLowerCase() !== OWNER_EMAIL) return false;
+    const r = await env.DB.prepare('SELECT email_verified FROM users WHERE id = ?').bind(user.id).first();
+    if (!r || Number(r.email_verified) !== 1) return false;
+    const g = await env.DB.prepare("SELECT 1 AS x FROM identities WHERE user_id = ? AND provider = 'google'").bind(user.id).first();
+    return !!g;
+  } catch (e) { return false; }
+}
+let visitsReady = null;
+const ensureVisits = (env) => (visitsReady = visitsReady || env.DB.prepare('CREATE TABLE IF NOT EXISTS den_visits (email TEXT PRIMARY KEY, name TEXT, first_ts INTEGER, last_ts INTEGER, n INTEGER)').run().catch((e) => { visitsReady = null; throw e; }));
+async function noteVisit(env, user) {                               // best effort, at most one write per person per 10 minutes, never blocks or changes a login
+  try {
+    const email = String(user.email || '').trim().toLowerCase(); if (!email || /@social\.den\.local$/.test(email)) return;
+    await ensureVisits(env); const t = now();
+    await env.DB.prepare('INSERT INTO den_visits (email, name, first_ts, last_ts, n) VALUES (?, ?, ?, ?, 1) ON CONFLICT(email) DO UPDATE SET name = excluded.name, last_ts = excluded.last_ts, n = den_visits.n + 1 WHERE den_visits.last_ts < excluded.last_ts - 600000')
+      .bind(email, String(user.name || '').slice(0, 60), t, t).run();
+  } catch (e) { /* never affects the request */ }
+}
+async function signingKey(env) {
+  const raw = clean(env.DEN_SIGN_JWK); if (!raw) return null;
+  const alg = { name: 'ECDSA', namedCurve: 'P-256' };
+  try {
+    if (raw.startsWith('{')) return await crypto.subtle.importKey('jwk', JSON.parse(raw), alg, false, ['sign']);
+    return await crypto.subtle.importKey('pkcs8', b64uDec(raw.replace(/\s+/g, '')), alg, false, ['sign']);
+  } catch (e) { return null; }
+}
+async function signPayload(env, text) {                            // returns [payloadB64u, signatureB64u] or null; proves the key matches the website's public key
+  const key = await signingKey(env); if (!key) return null;
+  const bytes = enc.encode(text), sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, bytes));
+  const pub = await crypto.subtle.importKey('raw', b64uDec(DEN_PUB), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+  if (!(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pub, sig, bytes))) return 'mismatch';
+  return [b64uEnc(bytes), b64uEnc(sig)];
+}
+async function ownerRoute(req, env, url, path, user) {
+  if (!(await ownerOk(env, user))) return fail(404, 'not_found');   // identical answer for everyone who is not the owner
+  if (req.method !== 'GET' && !sameSiteOk(req, url)) return fail(403, 'forbidden');
+  if (path === '/api/owner/me' && req.method === 'GET') return json({ ok: true, owner: true, signing: !!(await signingKey(env)) });
+  if (path === '/api/owner/visits' && req.method === 'GET') {
+    try { await ensureVisits(env); const r = await env.DB.prepare('SELECT email, name, first_ts, last_ts, n FROM den_visits ORDER BY last_ts DESC LIMIT 300').all(); return json({ ok: true, visits: (r.results || []).map((v) => ({ email: v.email, name: v.name || '', first: v.first_ts, last: v.last_ts, n: v.n })) }); }
+    catch (e) { return fail(500, 'visits_failed'); }
+  }
+  if (path === '/api/owner/sign' && req.method === 'POST') {
+    const t = await req.text(); if (t.length > 1800000) return fail(413, 'too_large');
+    let b; try { b = JSON.parse(t); } catch (e) { return fail(400, 'bad_request'); } if (!b || typeof b !== 'object') return fail(400, 'bad_request');
+    const email = String(b.email || '').normalize('NFKC').trim().toLowerCase(), kind = String(b.kind || '');
+    if (!EMAIL_RE.test(email) || email.length > 254 || /[|\s]/.test(email)) return fail(400, 'bad_email');
+    if (!(await signingKey(env))) return fail(503, 'signing_not_set');
+    let out;
+    if (kind === 'plus') {                                                     // DENPLUS.<v1|email|YYYY-MM-DD|days>.<sig>
+      const days = Math.max(1, Math.min(365, Math.round(Number(b.days)) || 31)), d = new Date().toISOString().slice(0, 10);
+      const sg = await signPayload(env, ['v1', email, d, days].join('|')); if (sg === 'mismatch') return fail(500, 'wrong_key'); out = { code: 'DENPLUS.' + sg[0] + '.' + sg[1], days };
+    } else if (kind === 'reset') {                                             // DENRESET.<r1|email|issuedMs|hours|nonce>.<sig>
+      const hours = Math.max(1, Math.min(168, Math.round(Number(b.hours)) || 48));
+      const sg = await signPayload(env, ['r1', email, now(), hours, hex(rand(8))].join('|')); if (sg === 'mismatch') return fail(500, 'wrong_key'); out = { code: 'DENRESET.' + sg[0] + '.' + sg[1], hours };
+    } else if (kind === 'recovery') {                                          // DENBACKUP.<b1|email|issuedMs|hours|nonce|gz|sha256>.<sig>.<gzipped account bundle>  (account recovery link, no file needed)
+      const hours = Math.max(1, Math.min(168, Math.round(Number(b.hours)) || 72)), days = Math.max(0, Math.min(365, Math.round(Number(b.days)) || 0)), rc = b.rec || {};
+      const nm = String(rc.name || '').trim().slice(0, 40);                      // the password is hashed in the browser (PBKDF2 120000, the app's own rule); only the salt + hash arrive here
+      if (!nm || !/^[A-Za-z0-9+/]{22,24}={0,2}$/.test(String(rc.salt || '')) || !/^[A-Za-z0-9+/]{42,44}={0,2}$/.test(String(rc.hash || ''))) return fail(400, 'bad_login');
+      const bundle = { den: 'account', v: 2, email, rec: { name: nm, salt: rc.salt, hash: rc.hash, created: now() }, data: { layouts: [], templates: [], photos: [] } };
+      if (days > 0) { const kg = await signPayload(env, ['v1', email, new Date().toISOString().slice(0, 10), days].join('|')); if (kg === 'mismatch') return fail(500, 'wrong_key'); bundle.key = 'DENPLUS.' + kg[0] + '.' + kg[1]; }
+      const gz = new Uint8Array(await new Response(new Blob([enc.encode(JSON.stringify(bundle))]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+      const sha = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', gz))), issued = now();
+      const sg = await signPayload(env, ['b1', email, issued, hours, b64uEnc(rand(9)), 'gz', sha].join('|')); if (sg === 'mismatch') return fail(500, 'wrong_key');
+      const code = 'DENBACKUP.' + sg[0] + '.' + sg[1] + '.' + b64uEnc(gz); out = { code, link: url.origin + '/#restore=' + code, hours, days, exp: issued + hours * 36e5 };
+    } else return fail(400, 'bad_kind');
+    log('owner_sign', { kind }); return json({ ok: true, ...out });
+  }
+  return fail(404, 'not_found');
+}
+
 /* ---------- 7. router ---------- */
 export default {
   async fetch(req, env) {
@@ -545,6 +627,8 @@ export default {
       if (path.startsWith('/api/booth/')) return boothRoute(req, env, url, path);   // before the login lookup on purpose: guests need no account, and this never touches a session
       if (path.startsWith('/api/share/')) return shareRoute(req, env, url, path);   // guest QR links: before the login lookup on purpose (guests need no account; this never touches a session)
       const user = await currentUser(req, env);
+      if (path.startsWith('/api/owner/')) return ownerRoute(req, env, url, path, user);   // 404 for everyone except the verified owner
+      if (path === '/api/me' && req.method === 'GET' && user) await noteVisit(env, user);   // names + emails + times only, for the owner's "Who visited"
       if (path === '/api/me' && req.method === 'GET' && user && user.sessExp && user.sessExp - Math.floor(now() / 1000) < (SESSION_DAYS - 1) * 86400) {   // sliding session: re-issue the same login with a fresh full lifetime (at most about once a day)
         const fresh = await signToken(env, { u: user.id, e: user.sessEpoch }, SESSION_DAYS * 86400);
         return json({ ok: true, user: { id: user.id, email: user.email, name: user.name, picture: user.picture || '', hasPassword: !!user.password_hash }, bytes: user.bytes || 0 }, 200, { 'Set-Cookie': cookie('den_session', fresh, { maxAge: SESSION_DAYS * 86400 }) });

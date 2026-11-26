@@ -3094,6 +3094,18 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
           <div class="preview-card"><div class="pv-stack"><canvas id="stripPreview" aria-label="Live preview of your photo strip" role="img"></canvas><canvas id="stripOverlay" aria-hidden="true"></canvas></div></div>
         </div>
 
+        <div class="adj-bar" id="adjBar">
+          <span class="adj-hint" id="adjHint">Tap a photo to move or zoom it</span>
+          <span class="adj-ctl" id="adjCtl" hidden>
+            <b id="adjLab">Photo 1</b>
+            <button type="button" class="adj-b" id="adjOut" aria-label="Zoom out">&minus;</button>
+            <input type="range" id="adjZoom" min="100" max="400" step="1" value="100" aria-label="Zoom this photo">
+            <button type="button" class="adj-b" id="adjIn" aria-label="Zoom in">+</button>
+            <button type="button" class="adj-b adj-t" id="adjReset">Reset</button>
+            <button type="button" class="adj-b adj-t" id="adjDone">Done</button>
+          </span>
+        </div>
+
         <div class="draw-bar" id="drawBar" hidden>
           <div class="draw-row" role="group" aria-label="Brush">
             <button type="button" class="btn btn--quiet is-on" data-tool="pen"><span>Pen</span></button>
@@ -5514,7 +5526,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       const work = document.createElement('canvas'), seq = [];
       for (let k = 0; k < steps; k++) {                         // pre-render every step
         const photos = state.photos.map((p, i) => p && (p.frames
-          ? { id: `live${i}-${k}`, canvas: p.frames[Math.min(k, p.frames.length - 1)] } : { id: p.id, canvas: p.canvas }));
+          ? { id: `live${i}-${k}${panOk(p.pan) ? '~' + panKey(p.pan) : ''}`, canvas: panCanvas(p.frames[Math.min(k, p.frames.length - 1)], p.pan) } : adjPhoto({ id: p.id, canvas: p.canvas, pan: p.pan })));
         renderStrip(work, ldpi, { photos });
         const f = document.createElement('canvas'); f.width = W; f.height = H;
         const fx = f.getContext('2d'); fx.imageSmoothingQuality = 'high'; fx.drawImage(work, 0, 0, W, H);
@@ -7151,6 +7163,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       const A = window.DEN_ASSETS.hirono, k = g.frames.length === 4 ? '4' : '3', filter = getFilter(v.filterId);
       A['h' + k].forEach((r, i) => {
         const x = Math.floor(r[0] * g.W) - 1, y = Math.floor(r[1] * g.H) - 1, w = Math.ceil(r[2] * g.W) + 2, h = Math.ceil(r[3] * g.H) + 2, p = v.photos[i];
+        recF(i, x, y, w, h, 0);
         if (p) { ctx.drawImage(filteredPhoto(hirPhoto(p, w, h), w, h, filter), x, y); return; }
         ctx.fillStyle = '#D9D5C9'; ctx.fillRect(x, y, w, h);
       });
@@ -7194,6 +7207,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       const A = window.DEN_ASSETS.village, k = g.frames.length === 4 ? '4' : '3', filter = getFilter(v.filterId);
       A['h' + k].forEach((r, i) => {
         const x = Math.floor(r[0] * g.W) - 1, y = Math.floor(r[1] * g.H) - 1, w = Math.ceil(r[2] * g.W) + 2, h = Math.ceil(r[3] * g.H) + 2, p = v.photos[i];
+        recF(i, x, y, w, h, 0);
         if (p) { ctx.drawImage(filteredPhoto(hirPhoto(p, w, h), w, h, filter), x, y); return; }
         ctx.fillStyle = VT_PH; ctx.fillRect(x, y, w, h);
       });
@@ -7285,6 +7299,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       S.h.forEach((r, i) => {
         if (S.L && S.L[i]) ctx.drawImage(S.L[i], 0, 0, g.W, g.H);
         const w = r[2] * AW + 3, h = r[3] * AH + 3, ow = Math.ceil(r[2] * g.W) + 3, oh = Math.ceil(r[3] * g.H) + 3, p = v.photos[i];
+        recF(i, r[0] * g.W - r[2] * g.W / 2, r[1] * g.H - r[3] * g.H / 2, r[2] * g.W, r[3] * g.H, r[4] * 180 / Math.PI);
         ctx.save(); ctx.translate(r[0] * g.W, r[1] * g.H); ctx.scale(g.W / AW, g.H / AH); ctx.rotate(r[4]);
         if (r[5]) { ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, r[5] + 1.5); ctx.clip(); }
         if (p) ctx.drawImage(filteredPhoto(hirPhoto(p, ow, oh), ow, oh, filter), -w / 2, -h / 2, w, h);
@@ -7305,11 +7320,35 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   function getTemplate(id) { return CONFIG.templates.find((t) => t.id === id) || CONFIG.templates[0]; }
 
   /** Everything the strip drawing depends on. renderStrip(canvas, dpi, overrides) can swap parts (used for previews). */
+  /* ---- Adjust a photo inside its frame (pan + zoom). Each photo keeps pan = { s: scale 1..4, x, y: -1..1 }; it is applied to the photo itself, so the live preview,
+     every template, the export, the QR share and the print all use exactly the same framing. The crop window always stays inside the picture, so no gaps and no stretching. ---- */
+  const PANC = new WeakMap(), PAN_MAX = 4;
+  const panOk = (pn) => !!pn && pn.s > 1.001;
+  const panKey = (pn) => [Math.min(PAN_MAX, pn.s).toFixed(3), (pn.x || 0).toFixed(3), (pn.y || 0).toFixed(3)].join(',');
+  function panCanvas(c, pn) {
+    if (!c || !panOk(pn)) return c;
+    const sc = Math.min(PAN_MAX, pn.s), px = Math.max(-1, Math.min(1, pn.x || 0)), py = Math.max(-1, Math.min(1, pn.y || 0)), key = panKey(pn);
+    let m = PANC.get(c); if (!m) { m = new Map(); PANC.set(c, m); } if (m.has(key)) return m.get(key);
+    const W = c.width, H = c.height, cw = W / sc, ch = H / sc, o = document.createElement('canvas'); o.width = W; o.height = H;
+    const x = o.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(c, (W - cw) / 2 * (1 + px), (H - ch) / 2 * (1 + py), cw, ch, 0, 0, W, H);
+    if (m.size > 10) m.clear(); m.set(key, o); return o;
+  }
+  function adjPhoto(p) {
+    if (!p || !panOk(p.pan)) return p;
+    const q = Object.assign({}, p, { id: p.id + '~' + panKey(p.pan), canvas: panCanvas(p.canvas, p.pan) });
+    if (p.wide) q.wide = panCanvas(p.wide, p.pan);
+    if (p.lens) q.lens = Object.assign({}, p.lens, { canvas: panCanvas(p.lens.canvas, p.pan), wide: p.lens.wide ? panCanvas(p.lens.wide, p.pan) : p.lens.wide });
+    return q;
+  }
+  const ADJ = { idx: -1, tap: null, drag: null, pinch: null };
+  let REC = null;                                           // frame rectangles of the latest preview render (for tapping a photo)
+  const recF = (i, x, y, w, h, r) => { if (REC) REC[i] = { x, y, w, h, r: r || 0 }; };
+
   function currentView() {
     return {
       layout: currentLayout(), tpl: state.templateId, color: state.stripColor, frame: state.frameColor, tplTint: (state.tplTints || {})[state.templateId] || null,
       bg: state.templateId === 'plain' && !currentLayout().custom ? null : state.bgCanvas,
-      photos: state.photos, filterId: state.filterId, showDate: state.showDate, text: state.customText,
+      photos: state.photos.map(adjPhoto), filterId: state.filterId, showDate: state.showDate, text: state.customText,
       stickers: state.stickers, strokes: state.strokes, tplText: state.tplText,
     };
   }
@@ -7320,6 +7359,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const tpl = getTemplate(v.tpl), layout = effLayout(v.layout.baseL || v.layout, tpl), _vl = (layout.onl ? (v.layout = layout) : 0), g = geometry(layout, dpi), k = layoutK(layout), dk = dpi * k, px = (n) => n * dk;
     if (tpl.lockBg) { v.bg = null; v.color = tpl.bg; v.frame = tpl.frame; }          // locked-background templates ignore color / photo choices
     canvas.width = g.W; canvas.height = g.H;
+    REC = canvas.id === 'stripPreview' ? [] : null; if (REC) { state.frameRects = REC; state.frameDims = { W: g.W, H: g.H }; }
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     if (tpl.custom) { drawCustomStrip(ctx, g, v, tpl, dk); drawTopLayers(ctx, g, v); return; }
@@ -7359,7 +7399,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       else ctx.rect(f.x, f.y, f.w, f.h);
     };
     (tpl.art ? [] : g.frames).forEach((f, i) => {
-      const p = v.photos[i];
+      const p = v.photos[i]; recF(i, f.x, f.y, f.w, f.h, f.r);
       ctx.save(); rotAbout(ctx, f);                                      // free rotation about the frame's centre
       ctx.save(); shape(f); ctx.clip();
       if (p) { try { ctx.drawImage(filteredPhoto(p, f.w, f.h, filter), f.x, f.y); } catch (e) { try { ctx.fillStyle = '#D9D2C2'; ctx.fillRect(f.x, f.y, f.w, f.h); } catch (e2) {} } }
@@ -7592,7 +7632,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     $('drawSize').addEventListener('input', (e) => { state.draw.size = +e.target.value; syncStickerUI(); });
     document.querySelectorAll('#drawBar [data-tool]').forEach((b) => b.addEventListener('click', () => { state.draw.tool = b.dataset.tool; syncStickerUI(); }));
 
-    const o = $('stripOverlay');
+    const o = $('stripOverlay'); adjWire();
     ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach((t, i) => o.addEventListener(t, [ovDown, ovMove, ovUp, ovUp][i]));
     window.addEventListener('resize', () => ovDraw());
     if (window.ResizeObserver) new ResizeObserver(() => ovDraw()).observe($('stripPreview'));
@@ -7600,7 +7640,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       if (state.screen !== 'edit' || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) return;
       const s = selSticker();
       if ((e.key === 'Delete' || e.key === 'Backspace') && s) { e.preventDefault(); delSticker(); }
-      else if (e.key === 'Escape') { state.selId = null; state.draw.on = false; syncStickerUI(); }
+      else if (e.key === 'Escape') { state.selId = null; state.draw.on = false; ADJ.idx = -1; syncStickerUI(); syncAdjUI(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && state.strokes.length) { e.preventDefault(); state.strokes.pop(); syncStickerUI(); schedulePreview(); }
       else if (s && e.key.startsWith('Arrow')) { e.preventDefault(); const d = e.shiftKey ? 0.02 : 0.005; s.x = clamp(s.x + (e.key === 'ArrowRight' ? d : e.key === 'ArrowLeft' ? -d : 0), 0, 1); s.y = clamp(s.y + (e.key === 'ArrowDown' ? d : e.key === 'ArrowUp' ? -d : 0), 0, 1); schedulePreview(); }
     });
@@ -7614,7 +7654,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     document.querySelectorAll('#drawBar [data-tool]').forEach((b) => b.classList.toggle('is-on', b.dataset.tool === D.tool));
     document.querySelectorAll('#drawColors .dcol').forEach((b) => b.classList.toggle('is-on', D.tool !== 'eraser' && b.dataset.hex === D.color));
     const dot = $('drawDot'), px = Math.max(3, Math.min(30, D.size * (D.tool === 'marker' ? 1.6 : 1))); dot.innerHTML = `<i style="width:${px}px;height:${px}px;background:${D.tool === 'eraser' ? '#bbb' : D.color}"></i>`;
-    const o = $('stripOverlay'); o.classList.toggle('on', D.on || state.stickers.length > 0); o.classList.toggle('draw', D.on); o.classList.toggle('grab', !D.on && !!s);
+    const o = $('stripOverlay'); o.classList.toggle('on', true); o.classList.toggle('adjsel', ADJ.idx >= 0); o.classList.toggle('draw', D.on); o.classList.toggle('grab', !D.on && !!s);
     ovDraw();
   }
 
@@ -7640,6 +7680,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (o.width !== cw || o.height !== ch) { o.width = cw; o.height = ch; }
     const x = o.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cw, ch); x.setTransform(dpr, 0, 0, dpr, OV_M * dpr, OV_M * dpr);
     if (ov.cur) paintStrokes(x, [ov.cur.e ? Object.assign({}, ov.cur, { e: false, c: 'rgba(120,120,120,0.35)', a: 1 }) : ov.cur], b.W, b.H);
+    if (ADJ.idx >= 0 && !state.draw.on) adjPaint(x, b);
     const s = selSticker(); if (!s || state.draw.on) return;
     const hs = handlesOf(s, b.W, b.H), by = {}; hs.forEach((h) => { by[h.k] = h; });
     x.strokeStyle = '#2b6cb0'; x.lineWidth = 1.2; x.setLineDash([4, 3]); x.beginPath(); ['nw', 'ne', 'se', 'sw'].forEach((k, i) => (i ? x.lineTo(by[k].x, by[k].y) : x.moveTo(by[k].x, by[k].y))); x.closePath(); x.stroke(); x.setLineDash([]);
@@ -7649,6 +7690,83 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       if (h.k === 'del') { x.strokeStyle = '#fff'; x.lineWidth = 2; x.beginPath(); x.moveTo(h.x - 4, h.y - 4); x.lineTo(h.x + 4, h.y + 4); x.moveTo(h.x + 4, h.y - 4); x.lineTo(h.x - 4, h.y + 4); x.stroke(); }
     });
   }
+  /* ---- tap a photo inside its frame: select it, drag to move, pinch / wheel / slider to zoom ---- */
+  function adjHit(p) {
+    const R = state.frameRects, D = state.frameDims; if (!R || !D || !p.W || !p.H) return -1;
+    const kx = p.W / D.W, ky = p.H / D.H;
+    for (let i = R.length - 1; i >= 0; i--) {
+      const r = R[i]; if (!r || !state.photos[i]) continue;
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2; let dx = p.x / kx - cx, dy = p.y / ky - cy;
+      if (r.r) { const a = -r.r * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), nx = dx * co - dy * si; dy = dx * si + dy * co; dx = nx; }
+      if (Math.abs(dx) <= r.w / 2 && Math.abs(dy) <= r.h / 2) return i;
+    }
+    return -1;
+  }
+  function adjDown(p) {
+    ADJ.tap = null; ADJ.drag = null;
+    const i = adjHit(p);
+    if (i >= 0 && i === ADJ.idx) ADJ.drag = { x: p.x, y: p.y };
+    else ADJ.tap = { i, x: p.x, y: p.y, moved: false };            // selects on release, so a page scroll on a phone is never mistaken for a tap
+  }
+  function adjPinchStart() { const [a, b] = [...ov.ptrs.values()], ph = state.photos[ADJ.idx]; if (!ph) return; ADJ.tap = null; ADJ.drag = null; ADJ.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: (ph.pan && ph.pan.s) || 1 }; }
+  function adjMove(p) {
+    if (ADJ.tap) { if (Math.hypot(p.x - ADJ.tap.x, p.y - ADJ.tap.y) > 8) ADJ.tap.moved = true; return true; }
+    const ph = state.photos[ADJ.idx];
+    if (ADJ.pinch && ov.ptrs.size >= 2 && ph) { const [a, b] = [...ov.ptrs.values()]; adjSetZoom(ADJ.pinch.s * Math.hypot(a.x - b.x, a.y - b.y) / ADJ.pinch.d); return true; }
+    if (ADJ.drag && ph) {
+      const r = (state.frameRects || [])[ADJ.idx], D = state.frameDims; if (!r || !D) return true;
+      let dx = p.x - ADJ.drag.x, dy = p.y - ADJ.drag.y; ADJ.drag.x = p.x; ADJ.drag.y = p.y;
+      if (r.r) { const a = -r.r * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), nx = dx * co - dy * si; dy = dx * si + dy * co; dx = nx; }
+      const pn = ph.pan; if (!panOk(pn)) return true;                  // at 100% the picture already fills the frame exactly: zoom in to move it
+      const fw = r.w * p.W / D.W, fh = r.h * p.H / D.H, sc = Math.min(PAN_MAX, pn.s) - 1;
+      pn.x = clamp((pn.x || 0) - 2 * dx / (fw * sc), -1, 1); pn.y = clamp((pn.y || 0) - 2 * dy / (fh * sc), -1, 1);
+      schedulePreview(); return true;
+    }
+    return false;
+  }
+  function adjUp(e) {
+    if (ADJ.tap && !ov.ptrs.size) { const t = ADJ.tap; ADJ.tap = null; if (!t.moved && e.type !== 'pointercancel') adjSelect(t.i); }
+    if (ov.ptrs.size < 2) ADJ.pinch = null;
+    if (!ov.ptrs.size) ADJ.drag = null;
+  }
+  function adjSelect(i) { ADJ.idx = i; if (i >= 0) { state.selId = null; state.draw.on = false; } syncStickerUI(); syncAdjUI(); }
+  function adjSetZoom(v) {
+    const ph = state.photos[ADJ.idx]; if (!ph) return; const sc = clamp(v, 1, PAN_MAX);
+    if (sc <= 1.001) delete ph.pan; else { ph.pan = ph.pan || { s: 1, x: 0, y: 0 }; ph.pan.s = sc; }
+    syncAdjUI(); schedulePreview();
+  }
+  function syncAdjUI() {
+    if (!$('adjBar')) return;
+    if (ADJ.idx >= 0 && !state.photos[ADJ.idx]) ADJ.idx = -1;
+    const on = ADJ.idx >= 0, ph = on ? state.photos[ADJ.idx] : null;
+    $('adjHint').hidden = on; $('adjCtl').hidden = !on;
+    if (on) { $('adjLab').textContent = 'Photo ' + (ADJ.idx + 1); $('adjZoom').value = Math.round(((ph.pan && ph.pan.s) || 1) * 100); }
+    const o = $('stripOverlay'); if (o) o.classList.toggle('adjsel', on);
+    ovDraw();
+  }
+  function adjPaint(x, b) {
+    const r = (state.frameRects || [])[ADJ.idx], D = state.frameDims; if (!r || !D) return;
+    const kx = b.W / D.W, ky = b.H / D.H, w = r.w * kx, h = r.h * ky;
+    x.save(); x.translate((r.x + r.w / 2) * kx, (r.y + r.h / 2) * ky); if (r.r) x.rotate(r.r * Math.PI / 180);
+    x.lineJoin = 'round'; x.strokeStyle = '#fff'; x.lineWidth = 6; x.strokeRect(-w / 2, -h / 2, w, h);
+    x.strokeStyle = '#2b6cb0'; x.lineWidth = 3; x.setLineDash([9, 5]); x.strokeRect(-w / 2, -h / 2, w, h); x.setLineDash([]);
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach((c) => { x.beginPath(); x.arc(c[0] * w / 2, c[1] * h / 2, 6, 0, 7); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = '#2b6cb0'; x.lineWidth = 2.2; x.stroke(); });
+    x.restore();
+  }
+  function adjWire() {
+    const o = $('stripOverlay'); if (!o || o._adjWired) return; o._adjWired = true;
+    o.addEventListener('wheel', (e) => {
+      if (ADJ.idx < 0 || state.draw.on || selSticker()) return; const b = ovBox(), p = { x: e.clientX - b.l, y: e.clientY - b.t, W: b.W, H: b.H };
+      if (adjHit(p) !== ADJ.idx) return; e.preventDefault(); const ph = state.photos[ADJ.idx]; adjSetZoom(((ph.pan && ph.pan.s) || 1) * Math.exp(-e.deltaY * 0.0018));
+    }, { passive: false });
+    const cur = () => { const ph = state.photos[ADJ.idx]; return (ph && ph.pan && ph.pan.s) || 1; };
+    $('adjZoom').addEventListener('input', (e) => adjSetZoom(+e.target.value / 100));
+    $('adjIn').addEventListener('click', () => adjSetZoom(cur() + 0.25));
+    $('adjOut').addEventListener('click', () => adjSetZoom(cur() - 0.25));
+    $('adjReset').addEventListener('click', () => { const ph = state.photos[ADJ.idx]; if (ph) delete ph.pan; syncAdjUI(); schedulePreview(); });
+    $('adjDone').addEventListener('click', () => { ADJ.idx = -1; syncAdjUI(); });
+  }
+
   function ovAfterRender() { if (ov.done) { ov.cur = null; ov.done = false; } ovDraw(); }
 
   /* ---- pointer handling ---- */
@@ -7663,6 +7781,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       ov.cur = { c: D.color, w: D.size * 0.0015 * mult, a: D.tool === 'marker' ? 0.5 : 1, e: D.tool === 'eraser', p: [[p.x / p.W, p.y / p.H]] }; ovDraw(); return;
     }
     const s = selSticker();
+    if (ov.ptrs.size === 2 && !s && ADJ.idx >= 0) { adjPinchStart(); return; }
     if (ov.ptrs.size === 2 && s) { const [a, b] = [...ov.ptrs.values()]; ov.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, a: Math.atan2(b.y - a.y, b.x - a.x), size: s.size, rot: s.rot || 0 }; ov.drag = null; return; }
     if (s) {
       const h = handlesOf(s, p.W, p.H).find((q) => Math.hypot(q.x - p.x, q.y - p.y) <= (q.k === 'del' ? 14 : 15));
@@ -7673,7 +7792,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }
     const hit = hitSticker(p);
     if (hit) { state.selId = hit.id; ov.drag = { t: 'move', ox: hit.x * p.W - p.x, oy: hit.y * p.H - p.y }; syncStickerUI(); }
-    else { ov.drag = null; if (state.selId) { state.selId = null; syncStickerUI(); } }
+    else { ov.drag = null; if (state.selId) { state.selId = null; syncStickerUI(); } adjDown(p); }
   }
   function ovMove(e) {
     if (!ov.ptrs.has(e.pointerId)) return;
@@ -7683,6 +7802,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       if (Math.hypot((p.x / p.W - q[0]) * p.W, (p.y / p.H - q[1]) * p.H) > 0.8) { ov.cur.p.push([p.x / p.W, p.y / p.H]); ovDraw(); }
       return;
     }
+    if (adjMove(p)) return;
     const s = selSticker(); if (!s) return;
     if (ov.pinch && ov.ptrs.size >= 2) {
       const [a, b] = [...ov.ptrs.values()]; s.size = clamp(ov.pinch.size * Math.hypot(a.x - b.x, a.y - b.y) / ov.pinch.d, 0.06, 1.2); s.rot = ov.pinch.rot + Math.atan2(b.y - a.y, b.x - a.x) - ov.pinch.a;
@@ -7702,6 +7822,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }
     if (ov.ptrs.size < 2) ov.pinch = null;
     if (!ov.ptrs.size) ov.drag = null;
+    adjUp(e);
   }
 
   /** Preview resolution follows the on-screen size, so an enlarged preview stays crisp (the export dpi is separate and untouched). */
@@ -7860,7 +7981,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   }
 
   function enterEdit() {
-    stopCamera(); warmDrop();
+    stopCamera(); warmDrop(); ADJ.idx = -1;
     try { window.__denLoadStickers(); } catch (e) {}
     show('edit');
     filterTemplatesForLayout();
@@ -8444,7 +8565,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (state.assetsPromise) return state.assetsPromise;
     state.assetsPromise = (async () => {
       const photos = [];
-      for (const ph of state.photos) { if (ph && ph.canvas) { const b = await canvasBlob(ph.canvas, 'image/jpeg', 0.93); if (b) photos.push(b); } }
+      for (const ph0 of state.photos) { const ph = adjPhoto(ph0); if (ph && ph.canvas) { const b = await canvasBlob(ph.canvas, 'image/jpeg', 0.93); if (b) photos.push(b); } }
       for (const ph of state.photos) for (const r of (ph && ph.raws) || []) { const b = await canvasBlob(r, 'image/jpeg', 0.93); if (b) photos.push(b); }   // each person's own raw shots, after the combined ones
       return { strip: state.sheetBlob || state.finalBlob, photos };
     })();
@@ -8780,7 +8901,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (!u) { try { if (!$('camsPanel').hidden) camsClose(); if (!$('prPanel').hidden) prClose(); if (!$('prLp').hidden) prEdClose(); } catch (e) { /* ignore */ } }
   }
   function setUser(user) {
-    acct.user = user; lsSet(ACCT.SESSION, user.email);
+    acct.user = user; lsSet(ACCT.SESSION, user.email); ownerCheck();
     try { window.dispatchEvent(new CustomEvent('den:user', { detail: { email: user.email } })); } catch (e) { /* ignore */ }
     syncCustomLayouts(); syncCustomTemplates(); renderAcct();
     try { if (lsGet('den.restoreNotice', '') === user.email) { lsDel('den.restoreNotice'); setTimeout(() => showRestoredNotice(), 600); } } catch (e) { /* ignore */ }
@@ -9103,6 +9224,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const name = $('sName').value.trim(), email = normEmail($('sEmail').value), pw = $('sPass').value;
     if (!name) return msgEl('mSignup', 'Please enter your name.', true);
     if (!validEmail(email)) return msgEl('mSignup', 'Please enter a valid email.', true);
+    if (email === OWNER_MAIL) return msgEl('mSignup', 'This email is reserved for the site owner. It cannot be used to create an account.', true);
     if (pw.length < 6) return msgEl('mSignup', 'Password needs at least 6 characters.', true);
     if (!(window.crypto && crypto.subtle)) return msgEl('mSignup', 'Accounts need a secure (https) page.', true);
     await accountsRestore();
@@ -9345,8 +9467,21 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     ['Theme, colors and fonts', 'Change the colors and font style of the whole booth to match your event.'],
     ['Unlimited layouts and templates', 'Free accounts get 2 layouts and 3 templates. Den+ has no limit.'] ];
   const b64uBytes = (t) => { const p = t.replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(p + '='.repeat((4 - p.length % 4) % 4)), (c) => c.charCodeAt(0)); };
+  /* ---- Owner access: the verified owner (densprem02@gmail.com, signed in with Google) is asked about on the server; only a yes unlocks lifetime Den+ and the Owner panel. ---- */
+  const OWN = { on: false, email: '', signing: false }, OWNER_MAIL = 'densprem02@gmail.com', LIFETIME = 4102444800000;
+  const ownerIs = () => !!(OWN.on && acct.user && normEmail(acct.user.email) === OWN.email);
+  window.__denOwnerIs = ownerIs;
+  function ownerCheck() {
+    try {
+      if (!acct.user || normEmail(acct.user.email) !== OWNER_MAIL) { if (OWN.on) { OWN.on = false; plusRefresh(); } return; }
+      fetch('/api/owner/me', { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Den-Cloud': '1' } }).then((r) => r.ok ? r.json() : null).then((j) => {
+        const was = OWN.on; OWN.on = !!(j && j.owner); OWN.email = OWN.on ? OWNER_MAIL : ''; OWN.signing = !!(j && j.signing); if (was !== OWN.on) plusRefresh();
+      }).catch(() => { /* offline or no server: nothing changes */ });
+    } catch (e) { /* ignore */ }
+  }
   function plusInfo() {
     if (!acct.user) return { on: false, exp: 0 };
+    if (ownerIs()) return { on: true, exp: LIFETIME };                                // the owner never needs a key
     const r = (lsGet(PLUS.KEY, {}) || {})[acct.user.email.toLowerCase()];
     return { on: !!r && Date.now() < r.exp, exp: r ? r.exp : 0 };
   }
@@ -9455,7 +9590,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     ['menuEventName', 'menuEventNameGuest', 'menuWelcome', 'menuWelcomeGuest', 'menuPhotos', 'menuPrint', 'menuPrintGuest'].forEach((id) => { const b = $(id); if (b) b.classList.toggle('is-locked', !on); });
     if ($('denCardTxt')) $('denCardTxt').textContent = on ? 'See Den+' : `Subscribe · ${pcPrice()}/month`;
     if ($('acPlusBadge')) $('acPlusBadge').hidden = !(on && acct.user);            // the Den+ pill shows only while a subscription is active
-    if ($('dpFree')) { $('dpExp').textContent = on ? fmtWhen(info.exp) : ''; dpShow(DP.mode); }
+    if ($('dpFree')) { $('dpExp').textContent = on ? (ownerIs() ? 'never (lifetime)' : fmtWhen(info.exp)) : ''; dpShow(DP.mode); }
     if ($('dpBak')) $('dpBak').hidden = !acct.user;                                 // the backup card lives in the profile / Den+ window
     if (acct.user && !$('acctPanel').hidden) { try { renderGallery(); } catch (e) { /* ignore */ } if (!$('templatesView').hidden) renderTemplates(); }
   }
@@ -9526,6 +9661,96 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     window.addEventListener('resize', pcCenter); if (window.ResizeObserver) new ResizeObserver(() => pcCenter()).observe(tr);
     pcRender();
   }
+  /* ---- Owner panel: who visited (names, emails, times only) + a copy vault for Den+ keys, reset codes and restore links. Built only after the server says "owner". ---- */
+  const OWN_CSS = '.own-m{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}.own-m[hidden]{display:none}.own-s{position:absolute;inset:0;background:rgba(40,30,25,.45)}'
+    + '.own-c{position:relative;width:min(640px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--paper,#fbf7ee);color:var(--ink,#3b2f2f);border:2px solid var(--ink,#3b2f2f);border-radius:18px;box-shadow:4px 6px 0 rgba(0,0,0,.22);padding:14px 16px 18px}'
+    + '.own-c h2{margin:0;font-size:1.35rem}.own-c h3{margin:16px 0 6px;font-size:1rem}.own-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.own-x{min-width:40px;min-height:40px;border:2px solid var(--ink,#3b2f2f);border-radius:12px;background:#fff;font-size:1.1rem;cursor:pointer}'
+    + '.own-note{font-size:.8rem;color:var(--ink-soft,#6b5b4b);margin:4px 0 8px}.own-warn{background:#fff3cd;border:1.5px solid #c9a227;border-radius:12px;padding:8px 10px;font-size:.82rem;margin:8px 0}'
+    + '.own-list{max-height:240px;overflow:auto;border:1.5px solid rgba(0,0,0,.18);border-radius:12px;background:#fff}.own-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.08);font-size:.82rem}.own-row:last-child{border-bottom:0}.own-row b{overflow-wrap:anywhere}.own-row span{overflow-wrap:anywhere;color:var(--ink-soft,#6b5b4b)}.own-row em{font-style:normal;text-align:right;white-space:nowrap}'
+    + '.own-box{border:1.5px solid rgba(0,0,0,.18);border-radius:14px;padding:10px;background:rgba(255,255,255,.6);margin-top:8px}.own-box label{display:block;font-size:.75rem;margin:6px 0 2px}.own-box input,.own-box select{width:100%;min-height:40px;box-sizing:border-box;border:1.5px solid var(--ink,#3b2f2f);border-radius:10px;padding:4px 10px;font:inherit;background:#fff}'
+    + '.own-btn{min-height:40px;padding:4px 14px;border:2px solid var(--ink,#3b2f2f);border-radius:12px;background:var(--paper-2,#fff);font:inherit;font-weight:700;cursor:pointer;margin-top:8px}.own-btn.p{background:var(--blue,#cfe1f3)}'
+    + '.own-out{width:100%;min-height:64px;box-sizing:border-box;margin-top:8px;border:1.5px dashed var(--ink,#3b2f2f);border-radius:10px;padding:6px 8px;font:12px/1.3 ui-monospace,Menlo,monospace;background:#fff;word-break:break-all;resize:vertical}.own-msg{font-size:.8rem;margin-top:6px;min-height:1em}.own-msg.err{color:#a3261c}';
+  function ownerBuild() {
+    if ($('ownM')) return $('ownM');
+    const st = document.createElement('style'); st.textContent = OWN_CSS; document.head.appendChild(st);
+    const m = document.createElement('div'); m.className = 'own-m'; m.id = 'ownM'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'ownT');
+    const tool = (id, title, note, body) => '<div class="own-box"><b>' + title + '</b><div class="own-note">' + note + '</div>' + body + '<div class="own-msg" id="' + id + 'Msg"></div><textarea class="own-out" id="' + id + 'Out" readonly hidden></textarea><div id="' + id + 'Act" hidden><button type="button" class="own-btn" data-cp="' + id + 'Out">Copy</button> <button type="button" class="own-btn" data-cp="' + id + 'Say">Copy message</button><textarea id="' + id + 'Say" hidden></textarea></div></div>';
+    m.innerHTML = '<div class="own-s" data-ox></div><div class="own-c"><div class="own-top"><h2 id="ownT">Owner panel</h2><button type="button" class="own-x" data-ox aria-label="Close">&times;</button></div>'
+      + '<p class="own-note">Only you can see this. It never shows anybody\'s photos or archive.</p><div class="own-warn" id="ownWarn" hidden>Code making is not switched on yet. Add the secret <b>DEN_SIGN_JWK</b> in Cloudflare (see OWNER-SETUP.md), then reopen this panel.</div>'
+      + '<h3>Who visited</h3><div class="own-note">Signed-in people: name, email and visit time only.</div><div class="own-list" id="ownList"><div class="own-row"><span>Loading...</span></div></div><button type="button" class="own-btn" id="ownRef">Refresh</button>'
+      + '<h3>Copy vault</h3>'
+      + tool('ownK', 'Den+ key maker', 'Same as your private key maker: DENPLUS..., checked on the device.', '<label for="ownKE">Account email</label><input id="ownKE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownKD">Length</label><select id="ownKD"><option value="31">1 month (31 days)</option><option value="93">3 months</option><option value="186">6 months</option><option value="365">1 year</option></select><button type="button" class="own-btn p" id="ownKGo">Make Den+ key</button>')
+      + tool('ownR', 'Password reset code', 'DENRESET..., one use, for the email you type.', '<label for="ownRE">Account email</label><input id="ownRE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownRH">Valid for</label><select id="ownRH"><option value="24">24 hours</option><option value="48" selected>48 hours</option><option value="168">7 days</option></select><button type="button" class="own-btn p" id="ownRGo">Make reset code</button>')
+      + '<div class="own-box"><b>Account recovery link (no file needed)</b><div class="own-note">For someone who lost their account and has no backup file. Brings back a working login (with the temporary password you choose) and their Den+. It cannot bring back photos, templates or layouts. Works once per device.</div>'
+      + '<label for="ownBE">Customer\'s account email</label><input id="ownBE" type="email" autocapitalize="none" autocomplete="off" placeholder="name@email.com"><label for="ownBN">Name on the account</label><input id="ownBN" type="text" maxlength="40" autocomplete="off" placeholder="Their name">'
+      + '<label for="ownBP">Temporary password (at least 6 characters)</label><input id="ownBP" type="text" autocapitalize="none" autocomplete="off" spellcheck="false"><button type="button" class="own-btn" id="ownBG">Make a password</button>'
+      + '<label for="ownBD">Den+ days to include (0 = none, max 365)</label><input id="ownBD" type="number" inputmode="numeric" value="31" min="0" max="365"><label for="ownBH">Link works for how many hours (1 to 168)</label><input id="ownBH" type="number" inputmode="numeric" value="72" min="1" max="168">'
+      + '<button type="button" class="own-btn p" id="ownBGo">Make recovery link</button><div class="own-msg" id="ownBMsg"></div>'
+      + '<div id="ownBBox" hidden><div class="own-note" id="ownBUntil"></div><label>Recovery link</label><textarea class="own-out" id="ownBLink" readonly></textarea><button type="button" class="own-btn" data-cp="ownBLink">Copy link</button>'
+      + '<label>Recovery code (paste under "Restore from link or code")</label><textarea class="own-out" id="ownBCode" readonly></textarea><button type="button" class="own-btn" data-cp="ownBCode">Copy code</button>'
+      + '<label>Message to send the customer</label><textarea class="own-out" id="ownBText" readonly></textarea><button type="button" class="own-btn" data-cp="ownBText">Copy message</button></div></div>'
+      + '</div>';
+    document.body.appendChild(m);
+    const close = () => { m.hidden = true; document.body.style.removeProperty('overflow'); };
+    m.addEventListener('click', (e) => {
+      if (e.target.closest('[data-ox]')) return close();
+      const c = e.target.closest('[data-cp]'); if (c) { const el = $(c.getAttribute('data-cp')); ownCopy(el.value, c); }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) close(); });
+    $('ownRef').addEventListener('click', ownerVisits);
+    const msg = (id, t, err) => { const e = $(id + 'Msg'); e.textContent = t || ''; e.className = 'own-msg' + (err ? ' err' : ''); };
+    const show = (id, code, say) => { $(id + 'Out').value = code; $(id + 'Out').hidden = false; $(id + 'Say').value = say; $(id + 'Act').hidden = false; };
+    const call = async (id, body, btn) => {
+      msg(id, 'Making it...'); btn.disabled = true;
+      try {
+        const r = await fetch('/api/owner/sign', { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'X-Den-Cloud': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) { const e = { signing_not_set: 'Code making is not switched on yet (secret DEN_SIGN_JWK missing).', wrong_key: 'The secret key does not match the website key.', bad_email: 'Enter a valid email.', bad_login: 'Could not make that login. Check the name and try again.' }[j.error]; msg(id, e || 'Could not make it. Try again.', true); return null; }
+        msg(id, 'Ready. Tap Copy.'); return j;
+      } catch (e) { msg(id, 'No connection. Try again.', true); return null; } finally { btn.disabled = false; }
+    };
+    const em = (id) => normEmail($(id).value);
+    $('ownKGo').addEventListener('click', async (e) => { const email = em('ownKE'); if (!validEmail(email)) return msg('ownK', 'Enter the account email.', true); const j = await call('ownK', { kind: 'plus', email, days: +$('ownKD').value }, e.currentTarget); if (j) show('ownK', j.code, 'Hi! Here is your Den+ key for ' + email + ':\n\n' + j.code + '\n\nOpen Den Collective > menu > Den+ > paste the key > Activate. Thank you!'); });
+    $('ownRGo').addEventListener('click', async (e) => { const email = em('ownRE'); if (!validEmail(email)) return msg('ownR', 'Enter the account email.', true); const j = await call('ownR', { kind: 'reset', email, hours: +$('ownRH').value }, e.currentTarget); if (j) show('ownR', j.code, 'Hi! Here is your password reset code for ' + email + ' (works once, for ' + j.hours + ' hours):\n\n' + j.code + '\n\nOpen Den Collective > Log in > Forgot password > paste the code.'); });
+    const b64s = (u8) => { let t = ''; u8.forEach((c) => { t += String.fromCharCode(c); }); return btoa(t); };
+    $('ownBG').addEventListener('click', () => { const al = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = new Uint8Array(10); crypto.getRandomValues(r); $('ownBP').value = Array.from(r, (x) => al[x % al.length]).join(''); });
+    $('ownBGo').addEventListener('click', async (e) => {
+      const btn = e.currentTarget, email = em('ownBE'), nm = $('ownBN').value.trim(), pw = $('ownBP').value, days = Math.max(0, Math.min(365, Math.round(+$('ownBD').value || 0))); $('ownBBox').hidden = true;
+      if (!validEmail(email)) return msg('ownB', 'Enter a valid email.', true); if (!nm) return msg('ownB', 'Enter their name.', true); if (pw.length < 6) return msg('ownB', 'The temporary password needs at least 6 characters.', true);
+      msg('ownB', 'Working... (a few seconds)');
+      let rec; try {                                                           // the password is hashed here, in the browser, with the app's own rule (PBKDF2, SHA-256, 120000 rounds); the server never sees it
+        const salt = new Uint8Array(16); crypto.getRandomValues(salt); const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+        rec = { name: nm.slice(0, 40), salt: b64s(salt), hash: b64s(new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 120000, hash: 'SHA-256' }, k, 256))) };
+      } catch (x) { return msg('ownB', 'This browser cannot make the login. Use a newer browser.', true); }
+      const j = await call('ownB', { kind: 'recovery', email, rec, days, hours: +$('ownBH').value || 72 }, btn); if (!j) return;
+      const until = new Date(j.exp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+      $('ownBLink').value = j.link; $('ownBCode').value = j.code; $('ownBUntil').textContent = 'Valid until ' + until + '. Works once per device.';
+      $('ownBText').value = 'Hi! Here is your Den Collective recovery link. Open it, then tap "Restore from link or code":\n\n' + j.link + '\n\nThen log in with your email and this temporary password: ' + pw + '\nYou can change it after you log in' + (j.days > 0 ? '. Your Den+ comes back too' : '') + '.\n\nIt works once and only until ' + until + '. Right after, download your permanent backup file and keep it safe: that file never expires, and it is the only way to bring back your photos, templates and layouts if you ever lose your account again.';
+      $('ownBBox').hidden = false; msg('ownB', 'Done. Valid for ' + j.hours + ' hours, works once per device.');
+    });
+    return m;
+  }
+  function ownCopy(text, btn) {
+    const done = () => { if (btn) { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); } };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, () => ownCopyOld(text, done)); return; } } catch (e) { /* fall through */ }
+    ownCopyOld(text, done);
+  }
+  function ownCopyOld(text, done) { const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ } t.remove(); }
+  const ownEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  async function ownerVisits() {
+    const box = $('ownList'); if (!box) return;
+    try {
+      const r = await fetch('/api/owner/visits', { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Den-Cloud': '1' } }), j = await r.json();
+      if (!r.ok || !j.ok) throw new Error('x');
+      const fmt = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+      box.innerHTML = j.visits.length ? j.visits.map((v) => '<div class="own-row"><b>' + ownEsc(v.name || '(no name)') + '</b><em>' + ownEsc(fmt(v.last)) + '</em><span>' + ownEsc(v.email) + '</span><span>' + v.n + ' visit' + (v.n === 1 ? '' : 's') + '</span></div>').join('') : '<div class="own-row"><span>No visits recorded yet. People appear here the next time they open the site while signed in.</span></div>';
+    } catch (e) { box.innerHTML = '<div class="own-row"><span>Could not load. Tap Refresh.</span></div>'; }
+  }
+  function openOwner() {
+    if (!ownerIs()) return openDenPlus();
+    const m = ownerBuild(); m.hidden = false; document.body.style.overflow = 'hidden'; $('ownWarn').hidden = OWN.signing; ownerVisits();
+    try { setAcctOpen(false); } catch (e) { /* ignore */ }
+    setTimeout(() => { try { m.querySelector('.own-x').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+  }
   function openDenPlus(opt) {
     opt = opt || {}; $('dpMsg').textContent = ''; $('dpMsg').classList.remove('err'); $('dpFeatures').hidden = false; $('dpSee').querySelector('span').textContent = 'Hide Den+';
     $('dpReason').hidden = !opt.feature; $('dpReason').textContent = opt.feature ? `${opt.feature} is part of Den+.` : '';
@@ -9546,8 +9771,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     }, true);
     ['thColors', 'thFonts'].forEach((id) => $(id).addEventListener('click', (e) => { if (!e.target.closest('button')) return; if (plusGate('Theme, color and font changes')) return; e.stopImmediatePropagation(); e.preventDefault(); }, true));
     document.addEventListener('click', (e) => { const b = e.target.closest('#edPrintBtn'); if (b && !plusGate('Print Setup')) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-    ['acNameBox', 'acAvatar'].forEach((id) => $(id) && $(id).addEventListener('click', () => openDenPlus()));      // tap the name / picture: full Den+ account status
-    $('acNameBox').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDenPlus(); } });
+    $('acAvatar') && $('acAvatar').addEventListener('click', () => openDenPlus());
+    $('acNameBox').addEventListener('click', () => (ownerIs() ? openOwner() : openDenPlus()));      // tap the name / picture: full Den+ account status
+    $('acNameBox').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ownerIs() ? openOwner() : openDenPlus(); } });
     $('dpClose').addEventListener('click', closeDenPlus); $('dpLater').addEventListener('click', closeDenPlus);
     $('denPlus').addEventListener('click', (e) => { if (e.target === $('denPlus')) closeDenPlus(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('denPlus').hidden) closeDenPlus(); });
@@ -9854,7 +10080,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (x) { /* ignore */ }
     const email = normEmail(lsGet(ACCT.SESSION, null)), db = dbGet();
     if (email && db[email]) acct.user = { email, name: db[email].name };
-    authGate();
+    authGate(); setTimeout(ownerCheck, 1200);
     try { syncLogo(); } catch (x) { /* ignore */ }                                                        // the saved Den+ theme colours the logo from the first screen
     accountsRestore().then((back) => { const e2 = normEmail(lsGet(ACCT.SESSION, null)), d2 = dbGet(); if (back && !acct.user && e2 && d2[e2]) { acct.user = { email: e2, name: d2[e2].name }; syncCustomLayouts(); syncCustomTemplates(); renderAcct(); } });
     $('profileBtn').addEventListener('click', () => { if (!$('chatPanel').hidden) { setChat(false); return; } setAcctOpen($('acctPanel').hidden); });
@@ -10094,6 +10320,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.16)'; ctx.shadowBlur = Math.max(2, dpi * 0.03); ctx.shadowOffsetY = Math.max(1, dpi * 0.006);
         ctx.fillStyle = '#FBF7EE'; ctx.fillRect(f.x - m, f.y - m, f.w + 2 * m, f.h + 2 * m); ctx.restore();
       }
+      recF(i, f.x, f.y, f.w, f.h, f.r);
       ctx.save(); rotAbout(ctx, f);
       ctx.save(); ctx.beginPath(); ctx.rect(f.x, f.y, f.w, f.h); ctx.clip();
       if (p) { try { ctx.drawImage(filteredPhoto(p, f.w, f.h, filter), f.x, f.y); } catch (e) { try { ctx.fillStyle = '#D9D2C2'; ctx.fillRect(f.x, f.y, f.w, f.h); } catch (e2) {} } }
@@ -11379,6 +11606,13 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     <div class="ev-cal-ag" id="evCalAg" hidden></div>
     <div class="ev-cal-foot"><button class="ev-cal-link" id="evCalToday" type="button">Today</button></div>
   </div>
+  <div class="ev-pin">
+    <label class="ev-sw"><span>Require 4-digit PIN to start <small>(optional)</small></span><input type="checkbox" id="evPinOn" role="switch"></label>
+    <div class="ev-pin-row" id="evPinRow" hidden>
+      <input class="ev-in" id="evPin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="0000" aria-label="4-digit PIN">
+      <small>Guests type this on the welcome screen before every session. It is saved with this event (and your account backup of it).</small>
+    </div>
+  </div>
   <p class="ev-msg" id="evMsg" role="status" aria-live="polite"></p>
   <div class="ev-row">
     <button class="ev-b" id="evCustom" type="button">Customize settings</button>
@@ -11476,7 +11710,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
 
   function load() {
     try { const o = JSON.parse(localStorage.getItem(KEY)); if (o && o.layers) { o.launched = false; o.date = /^\d{4}-\d{2}-\d{2}$/.test(o.date || '') ? o.date : ''; o.sync = o.sync || { on: false, at: 0 }; o.bg = o.bg || { c1: GRADS[0][0], c2: GRADS[0][1], a: GRADS[0][2] };
-      o.saved = Array.isArray(o.saved) ? o.saved.filter((r) => r && r.id && /^\d{4}-\d{2}-\d{2}$/.test(r.date || '')).slice(-200) : []; o.gone = Array.isArray(o.gone) ? o.gone.slice(-60) : []; o.id = o.id || uid();
+      o.saved = Array.isArray(o.saved) ? o.saved.filter((r) => r && r.id && /^\d{4}-\d{2}-\d{2}$/.test(r.date || '')).slice(-200) : []; o.gone = Array.isArray(o.gone) ? o.gone.slice(-60) : []; o.id = o.id || uid(); o.pin = /^\d{4}$/.test(String(o.pin || '')) ? String(o.pin) : '';
       PEND = o.layers.filter((l) => l && l.type === 'video' && l.id); HYD = !PEND.length; o.layers = o.layers.filter((l) => l && l.type !== 'video'); return o; } } catch (e) {}
     return { name: '', date: '', launched: false, ar: 0, bg: { c1: GRADS[0][0], c2: GRADS[0][1], a: GRADS[0][2] }, layers: [], sync: { on: false, at: 0 }, saved: [], gone: [], id: uid() };
   }
@@ -11786,11 +12020,62 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (w.requestFullscreen) w.requestFullscreen().catch(() => $('wsEd').classList.add('ws-fs')); else $('wsEd').classList.add('ws-fs');
   }
 
+  /* ---------- optional 4-digit PIN (local only; the same event record that is already kept in this browser). Presentation + one local field: never touches accounts, cookies, tokens or sessions. ---------- */
+  const PIN_OK = (v) => /^\d{4}$/.test(String(v || ''));
+  function pinShow() { const on = PIN_OK(ev.pin); $('evPinOn').checked = on; $('evPinRow').hidden = !on; $('evPin').value = on ? ev.pin : ''; }
+  function pinSave() {                                                   // true when the PIN setting is fine to keep / launch with
+    if (!$('evPinOn').checked) { ev.pin = ''; save(); return true; }
+    const v = $('evPin').value.replace(/\D/g, '').slice(0, 4);
+    if (!PIN_OK(v)) { $('evMsg').textContent = 'Type a 4-digit PIN, or turn the PIN off.'; $('evMsg').className = 'ev-msg err'; $('evPinRow').hidden = false; $('evPin').focus(); return false; }
+    ev.pin = v; save(); return true;
+  }
+  const PG = { el: null, val: '', bad: 0, lockUntil: 0, tm: 0 };
+  function pinGateBuild() {
+    if (PG.el) return PG.el;
+    const d = document.createElement('div'); d.className = 'pin-gate'; d.id = 'pinGate'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'pinTitle'); d.hidden = true;
+    d.innerHTML = '<div class="pin-card"><button type="button" class="pin-x" id="pinX" aria-label="Cancel">&times;</button><h2 id="pinTitle">Enter PIN</h2><p class="pin-sub" id="pinSub">Ask the host for the 4-digit PIN to start.</p>' +
+      '<div class="pin-dots" id="pinDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p class="pin-msg" id="pinMsg" role="status" aria-live="polite"></p>' +
+      '<div class="pin-pad" id="pinPad">' + '123456789'.split('').map((n) => '<button type="button" data-k="' + n + '">' + n + '</button>').join('') +
+      '<button type="button" data-k="cancel" class="pin-alt">Cancel</button><button type="button" data-k="0">0</button><button type="button" data-k="del" class="pin-alt" aria-label="Delete">&#9003;</button></div></div>';
+    document.body.appendChild(d); PG.el = d;
+    d.addEventListener('click', (e) => { if (e.target === d) pinGateClose(); });
+    d.querySelector('#pinX').onclick = pinGateClose;
+    d.querySelector('#pinPad').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; const k = b.dataset.k; if (k === 'cancel') pinGateClose(); else if (k === 'del') pinKey('del'); else pinKey(k); });
+    return d;
+  }
+  function pinPaint() { PG.el.querySelectorAll('#pinDots i').forEach((i, n) => i.classList.toggle('on', n < PG.val.length)); }
+  function pinMsg(t) { PG.el.querySelector('#pinMsg').textContent = t || ''; }
+  function pinKey(k) {
+    if (!PG.el || PG.el.hidden) return;
+    if (Date.now() < PG.lockUntil) { pinMsg('Too many tries. Wait ' + Math.ceil((PG.lockUntil - Date.now()) / 1000) + 's.'); return; }
+    if (k === 'del') { PG.val = PG.val.slice(0, -1); pinPaint(); pinMsg(''); return; }
+    if (PG.val.length >= 4) return; PG.val += k; pinPaint(); pinMsg('');
+    if (PG.val.length === 4) {
+      if (PG.val === ev.pin) { PG.bad = 0; pinGateClose(true); $('enterBtn').click(); return; }
+      PG.bad++; const card = PG.el.querySelector('.pin-card'); card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+      if (PG.bad >= 5) { PG.bad = 0; PG.lockUntil = Date.now() + 30000; pinMsg('Too many tries. Wait 30 seconds.'); } else pinMsg('That PIN is not right. Try again.');
+      setTimeout(() => { PG.val = ''; pinPaint(); }, 380);
+    }
+  }
+  function pinGateOpen() {
+    const d = pinGateBuild(); PG.val = ''; pinPaint(); pinMsg(''); d.hidden = false; document.documentElement.classList.add('pin-open');
+    setTimeout(() => { try { d.querySelector('.pin-pad button').focus({ preventScroll: true }); } catch (e) {} }, 30);
+  }
+  function pinGateClose(ok) { if (!PG.el) return; PG.el.hidden = true; PG.val = ''; document.documentElement.classList.remove('pin-open'); if (!ok) { try { $('evScreen').focus({ preventScroll: true }); } catch (e) {} } }
+  function evStart() { if (ev.launched && PIN_OK(ev.pin)) pinGateOpen(); else $('enterBtn').click(); }   // no PIN set: starts immediately, exactly as before
+  document.addEventListener('keydown', (e) => {                          // keyboard works too (iPad keyboard, desktop, Android keyboard)
+    if (!PG.el || PG.el.hidden) return;
+    if (/^\d$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); pinKey(e.key); }
+    else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); pinKey('del'); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pinGateClose(); }
+    else if (e.key === 'Tab') { e.preventDefault(); }
+  }, true);
+
   /* ---------- event modal / launch ---------- */
   function openEvent() {
     if (document.documentElement.getAttribute('data-auth') !== 'in') return;     // signed-in only (reads the shared login flag, so it works from every part of the app)
     closeMenu(); $('evName').value = ev.name; $('evMsg').textContent = ''; $('evMsg').className = 'ev-msg';
-    $('evEnd').hidden = !ev.launched; $('evSyncOn').checked = !!ev.sync.on; syncMsg();
+    $('evEnd').hidden = !ev.launched; $('evSyncOn').checked = !!ev.sync.on; syncMsg(); pinShow();
     calOpen(); $('evScrim').hidden = false; $('evModal').hidden = false; setTimeout(() => $('evName').focus({ preventScroll: true }), 30);
   }
   function closeEvent() { if (!$('evModal').hidden && ev.date) { savedTouch(); save(); } tipHide(); $('evModal').hidden = true; $('evScrim').hidden = true; }
@@ -11800,6 +12085,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     ev.name = n; save(); return n;
   }
   function launch() {
+    if (!$('evModal').hidden && !pinSave()) return;
     const n = $('evModal').hidden ? ev.name : setName();
     if (!n) { if ($('evModal').hidden) { closeEditorKeep(); openEvent(); } $('evMsg').textContent = 'Give your event a name to launch it.'; $('evMsg').className = 'ev-msg err'; $('evName').focus(); return; }
     if (!ev.layers.length) defaults();
@@ -12036,8 +12322,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       const k = { ArrowLeft: [-.5, 0], ArrowRight: [.5, 0], ArrowUp: [0, -.5], ArrowDown: [0, .5] }[e.key]; if (k) { e.preventDefault(); L.cx += k[0]; L.cy += k[1]; merge = 'key'; render(); }
     });
     document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !$('wsEd').hidden) render(); });
-    $('evScreen').addEventListener('click', () => $('enterBtn').click());
-    $('evScreen').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('enterBtn').click(); } });
+    $('evScreen').addEventListener('click', evStart);
+    $('evScreen').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); evStart(); } });
+    $('evPinOn').onchange = () => { $('evPinRow').hidden = !$('evPinOn').checked; if ($('evPinOn').checked) $('evPin').focus(); else { ev.pin = ''; save(); } };
+    $('evPin').oninput = () => { const v = $('evPin').value.replace(/\D/g, '').slice(0, 4); if ($('evPin').value !== v) $('evPin').value = v; if (PIN_OK(v)) { ev.pin = v; save(); } };
     new MutationObserver(apply).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
     addEventListener('resize', () => { if (!$('wsEd').hidden) { render(); } });
     bindStage(); apply(); hydrate();
@@ -15713,6 +16001,32 @@ html[data-look="whimsical"] #screen-landing.wh-opening .wh-feat li { animation: 
 @keyframes wh-in-pill { from { opacity: 0; transform: translate3d(0, 10px, 0) rotate(var(--r, 0deg)) scale(.9); } to { opacity: 1; transform: rotate(var(--r, 0deg)); } }
 @media (prefers-reduced-motion: reduce) { #whLeaves { display: none; } }
 @media print { #whLeaves { display: none !important; } }
+</style>
+<style id="den-pin-css">
+.ev-pin { margin: 6px 0 4px; }
+.ev-pin .ev-sw small { opacity: .7; font-weight: 400; }
+.ev-pin-row { display: grid; gap: 6px; margin-top: 8px; }
+.ev-pin-row[hidden] { display: none; }
+.ev-pin-row .ev-in { max-width: 8.5em; text-align: center; letter-spacing: .5em; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.ev-pin-row small { font-size: .78rem; opacity: .75; }
+.pin-gate { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(160deg, rgba(213,228,242,.93), rgba(251,247,238,.95)); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); touch-action: manipulation; overscroll-behavior: none; }
+.pin-gate[hidden] { display: none; }
+.pin-card { position: relative; width: min(340px, 100%); max-height: 100%; padding: 22px 20px 18px; text-align: center; color: #3b2f2f; background: #fbf7ee; border: 3px solid #3b2f2f; border-radius: 26px; box-shadow: 6px 7px 0 rgba(59,47,47,.28); }
+.pin-card h2 { margin: 0 0 4px; font-size: 1.5rem; }
+.pin-sub { margin: 0 0 14px; font-size: .88rem; opacity: .8; }
+.pin-x { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: 0; background: none; font-size: 1.8rem; line-height: 1; color: inherit; cursor: pointer; }
+.pin-dots { display: flex; justify-content: center; gap: 14px; margin: 4px 0 6px; }
+.pin-dots i { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #3b2f2f; background: transparent; transition: background .12s, transform .12s; }
+.pin-dots i.on { background: #2b6cb0; border-color: #2b6cb0; transform: scale(1.12); }
+.pin-msg { min-height: 1.3em; margin: 4px 0 8px; font-size: .85rem; color: #b3412f; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pin-pad button { min-height: 58px; border: 2.5px solid #3b2f2f; border-radius: 18px; background: #fff; color: #3b2f2f; font: inherit; font-size: 1.5rem; font-weight: 600; cursor: pointer; box-shadow: 0 3px 0 rgba(59,47,47,.28); -webkit-tap-highlight-color: transparent; }
+.pin-pad button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(59,47,47,.28); background: #d5e4f2; }
+.pin-pad .pin-alt { font-size: .9rem; background: #efe7d6; }
+.pin-card.shake { animation: pinShake .38s ease; }
+@keyframes pinShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .pin-card.shake { animation: none; } }
+@media (max-height: 520px) { .pin-card { padding: 12px 16px; } .pin-pad button { min-height: 40px; font-size: 1.15rem; } .pin-sub { margin-bottom: 6px; } }
 </style>
 <style id="den-event-cal">
 /* ---- Create new event: month calendar. Soft beige card, muted sage selection, small pixel-art touches; follows the active look's colours. ---- */
@@ -19608,6 +19922,29 @@ html.den-tall #screen-edit.screen:not([hidden]) { height: max(100dvh, var(--ev-h
   /* tall art strips (Vintage Booth is 1:5) stay fully on screen on phones too */
   html #screen-edit .edit-left .preview-card { width: min(62%, 230px, calc((100dvh - 330px) * var(--sar, 0.3333) + 28px)); min-width: 120px; }
 }
+@media (min-width: 701px) {
+  /* bottom bar: only the words field and Print, no backing; Back to camera is a small button in the top-left corner */
+  #screen-edit .edit-below { background: none !important; border: 0 !important; box-shadow: none !important; grid-template-columns: minmax(0, 1fr) auto; }
+  #screen-edit .edit-below .text-field { grid-column: 1; grid-row: 1; }
+  #screen-edit .edit-below #printBtn { grid-column: 2; grid-row: 1; }
+  #screen-edit .edit-below #editBack { position: fixed; top: max(14px, calc(env(safe-area-inset-top, 0px) + 8px)); left: max(14px, env(safe-area-inset-left, 0px)); z-index: 30; grid-column: auto; grid-row: auto; min-height: 36px; width: auto; padding: 4px 12px 4px 8px; font-size: 0.85rem; gap: 6px; box-shadow: 2px 3px 0 var(--blue-deep, rgba(0,0,0,.25)); }
+  #screen-edit .edit-below #editBack .icon { width: 16px; height: 16px; }
+}
+@media (min-width: 701px) {
+  /* the bottom row sits in its own strip under the scrolling panel, so settings never slide underneath it */
+  html #screen-edit .controls { bottom: calc(86px + max(env(safe-area-inset-bottom, 0px), 8px)); }
+  html #screen-edit .edit-grid > .edit-below { position: absolute; z-index: 5; left: calc(var(--elw) + clamp(20px, 4vw, 44px)); right: 0; bottom: max(env(safe-area-inset-bottom, 0px), 8px); margin: 0; padding: 0 10px 0 4px; background: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px 10px; }
+}
+#stripOverlay.on { cursor: pointer; }
+#stripOverlay.adjsel { touch-action: none; }
+@media (min-width: 701px) { #screen-edit #stripOverlay { touch-action: none; } }
+.adj-bar { flex: none; display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 4px 8px; font-size: 0.82rem; color: var(--ink-soft, #6b5b4b); }
+.adj-bar[hidden], .adj-hint[hidden], .adj-ctl[hidden] { display: none !important; }
+.adj-ctl { display: flex; align-items: center; gap: 6px; width: 100%; max-width: 520px; padding: 4px 8px; border: 2px solid var(--ink, #3b2f2f); border-radius: 12px; background: var(--paper, #fbf7ee); color: var(--ink, #3b2f2f); }
+.adj-ctl b { font-size: 0.8rem; white-space: nowrap; }
+.adj-ctl input[type=range] { flex: 1 1 60px; min-width: 50px; accent-color: var(--blue-deep, #2b6cb0); }
+.adj-b { min-width: 30px; min-height: 30px; padding: 2px 8px; border: 2px solid var(--ink, #3b2f2f); border-radius: 9px; background: var(--paper-2, #fff); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.adj-t { font-size: 0.75rem; }
 </style>
 <script id="edit-lock-js">
 /* Safety net for the locked left side: focusing or tapping something inside a clipped box makes some browsers scroll that box. If it ever happens, put it straight back. */
@@ -19636,4 +19973,14 @@ html.den-tall .ev-brand { position: absolute; }
 html.den-tall #whPx, html.den-tall #circusBg, html.den-tall #whimBg { position: absolute; height: var(--ev-h, 100lvh); }
 html:not(.den-tall) .ev-screen { bottom: 0; }
 </style>
+<script id="denEditBelow">
+(function () { /* layout only: on wide screens the words + Print row lives under the scrolling panel; on phones it stays at the end of it */
+  try {
+    var mq = window.matchMedia('(min-width: 701px)');
+    function place() { var b = document.getElementById('editBelow'), g = document.querySelector('#screen-edit .edit-grid'), c = document.querySelector('#screen-edit .controls'); if (!b || !g || !c) return;
+      if (mq.matches) { if (b.parentNode !== g) g.appendChild(b); } else if (b.parentNode !== c) c.appendChild(b); }
+    place(); if (mq.addEventListener) mq.addEventListener('change', place); else if (mq.addListener) mq.addListener(place);
+  } catch (e) { /* layout only */ }
+})();
+</script>
 </body></html>
