@@ -2718,6 +2718,11 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
         </div>
         </div>
       </section>
+      <section class="wh-sec" id="whFeat" aria-labelledby="whFeatH" hidden>
+        <p class="wh-eyebrow" aria-hidden="true">Picked this week</p>
+        <h2 class="wh-h" id="whFeatH">Featured Photos</h2>
+        <div class="ft-wrap"><div class="ft-track" id="ftTrack" tabindex="0" aria-label="Featured photo strips, scroll sideways"></div></div>
+      </section>
       <section class="wh-sec" id="whFaq" aria-labelledby="whFaqH">
         <p class="wh-eyebrow" aria-hidden="true">Got questions?</p>
         <h2 class="wh-h" id="whFaqH">FAQ</h2>
@@ -9665,35 +9670,38 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   const OWN_CSS = '.own-m{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}.own-m[hidden]{display:none}.own-s{position:absolute;inset:0;background:rgba(40,30,25,.45)}'
     + '.own-c{position:relative;width:min(640px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--paper,#fbf7ee);color:var(--ink,#3b2f2f);border:2px solid var(--ink,#3b2f2f);border-radius:18px;box-shadow:4px 6px 0 rgba(0,0,0,.22);padding:14px 16px 18px}'
     + '.own-c h2{margin:0;font-size:1.35rem}.own-c h3{margin:16px 0 6px;font-size:1rem}.own-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.own-x{min-width:40px;min-height:40px;border:2px solid var(--ink,#3b2f2f);border-radius:12px;background:#fff;font-size:1.1rem;cursor:pointer}'
-    + '.own-note{font-size:.8rem;color:var(--ink-soft,#6b5b4b);margin:4px 0 8px}.own-warn{background:#fff3cd;border:1.5px solid #c9a227;border-radius:12px;padding:8px 10px;font-size:.82rem;margin:8px 0}'
+    + '.own-home{display:grid;gap:10px;margin-top:10px}.own-go{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:64px;padding:10px 14px;border:2px solid var(--ink,#3b2f2f);border-radius:14px;background:var(--paper-2,#fff);color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:2px 3px 0 rgba(0,0,0,.18)}.own-go b{font-size:1rem}.own-go span{font-size:.78rem;color:var(--ink-soft,#6b5b4b)}.own-go:active{transform:translateY(1px)}.own-m.full{padding:0}.own-m.full .own-c{width:100%;height:100%;max-height:none;border-radius:0;border-width:0;padding:max(12px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom))}.own-v[hidden]{display:none}.own-v .own-box:first-child{margin-top:0}.own-note{font-size:.8rem;color:var(--ink-soft,#6b5b4b);margin:4px 0 8px}.own-warn{background:#fff3cd;border:1.5px solid #c9a227;border-radius:12px;padding:8px 10px;font-size:.82rem;margin:8px 0}'
     + '.own-list{max-height:240px;overflow:auto;border:1.5px solid rgba(0,0,0,.18);border-radius:12px;background:#fff}.own-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.08);font-size:.82rem}.own-row:last-child{border-bottom:0}.own-row b{overflow-wrap:anywhere}.own-row span{overflow-wrap:anywhere;color:var(--ink-soft,#6b5b4b)}.own-row em{font-style:normal;text-align:right;white-space:nowrap}'
     + '.own-box{border:1.5px solid rgba(0,0,0,.18);border-radius:14px;padding:10px;background:rgba(255,255,255,.6);margin-top:8px}.own-box label{display:block;font-size:.75rem;margin:6px 0 2px}.own-box input,.own-box select{width:100%;min-height:40px;box-sizing:border-box;border:1.5px solid var(--ink,#3b2f2f);border-radius:10px;padding:4px 10px;font:inherit;background:#fff}'
     + '.own-btn{min-height:40px;padding:4px 14px;border:2px solid var(--ink,#3b2f2f);border-radius:12px;background:var(--paper-2,#fff);font:inherit;font-weight:700;cursor:pointer;margin-top:8px}.own-btn.p{background:var(--blue,#cfe1f3)}'
     + '.own-out{width:100%;min-height:64px;box-sizing:border-box;margin-top:8px;border:1.5px dashed var(--ink,#3b2f2f);border-radius:10px;padding:6px 8px;font:12px/1.3 ui-monospace,Menlo,monospace;background:#fff;word-break:break-all;resize:vertical}.own-msg{font-size:.8rem;margin-top:6px;min-height:1em}.own-msg.err{color:#a3261c}';
   function ownerBuild() {
     if ($('ownM')) return $('ownM');
-    const st = document.createElement('style'); st.textContent = OWN_CSS; document.head.appendChild(st);
+    const st = document.createElement('style'); st.textContent = OWN_CSS + '.own-ft{display:grid;grid-template-columns:72px 1fr;gap:8px 10px;padding:8px;border:1.5px solid rgba(0,0,0,.18);border-radius:12px;background:#fff;margin-top:8px}.own-ft img{width:72px;height:96px;object-fit:cover;border-radius:6px;background:#eee}.own-ft input{width:100%;box-sizing:border-box;min-height:36px;margin:2px 0;font:inherit;border:1.5px solid rgba(0,0,0,.3);border-radius:8px;padding:2px 8px}.own-fb{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1}.own-fb .own-btn{margin-top:0;min-height:36px;padding:2px 10px}'; document.head.appendChild(st);
     const m = document.createElement('div'); m.className = 'own-m'; m.id = 'ownM'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'ownT');
     const tool = (id, title, note, body) => '<div class="own-box"><b>' + title + '</b><div class="own-note">' + note + '</div>' + body + '<div class="own-msg" id="' + id + 'Msg"></div><textarea class="own-out" id="' + id + 'Out" readonly hidden></textarea><div id="' + id + 'Act" hidden><button type="button" class="own-btn" data-cp="' + id + 'Out">Copy</button> <button type="button" class="own-btn" data-cp="' + id + 'Say">Copy message</button><textarea id="' + id + 'Say" hidden></textarea></div></div>';
-    m.innerHTML = '<div class="own-s" data-ox></div><div class="own-c"><div class="own-top"><h2 id="ownT">Owner panel</h2><button type="button" class="own-x" data-ox aria-label="Close">&times;</button></div>'
+    m.innerHTML = '<div class="own-s" data-ox></div><div class="own-c"><div class="own-top"><button type="button" class="own-x" id="ownBack" hidden aria-label="Back">&larr;</button><h2 id="ownT">Owner panel</h2><button type="button" class="own-x" data-ox aria-label="Close">&times;</button></div>'
       + '<p class="own-note">Only you can see this. It never shows anybody\'s photos or archive.</p><div class="own-warn" id="ownWarn" hidden>Code making is not switched on yet. Add the secret <b>DEN_SIGN_JWK</b> in Cloudflare (see OWNER-SETUP.md), then reopen this panel.</div>'
-      + '<h3>Who visited</h3><div class="own-note">Signed-in people: name, email and visit time only.</div><div class="own-list" id="ownList"><div class="own-row"><span>Loading...</span></div></div><button type="button" class="own-btn" id="ownRef">Refresh</button>'
-      + '<h3>Copy vault</h3>'
-      + tool('ownK', 'Den+ key maker', 'Same as your private key maker: DENPLUS..., checked on the device.', '<label for="ownKE">Account email</label><input id="ownKE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownKD">Length</label><select id="ownKD"><option value="31">1 month (31 days)</option><option value="93">3 months</option><option value="186">6 months</option><option value="365">1 year</option></select><button type="button" class="own-btn p" id="ownKGo">Make Den+ key</button>')
-      + tool('ownR', 'Password reset code', 'DENRESET..., one use, for the email you type.', '<label for="ownRE">Account email</label><input id="ownRE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownRH">Valid for</label><select id="ownRH"><option value="24">24 hours</option><option value="48" selected>48 hours</option><option value="168">7 days</option></select><button type="button" class="own-btn p" id="ownRGo">Make reset code</button>')
-      + '<div class="own-box"><b>Account recovery link (no file needed)</b><div class="own-note">For someone who lost their account and has no backup file. Brings back a working login (with the temporary password you choose) and their Den+. It cannot bring back photos, templates or layouts. Works once per device.</div>'
+      + '<div class="own-home" id="ownHome"><button type="button" class="own-go" data-go="visits"><b>Who visited</b><span>Names, emails and visit times</span></button><button type="button" class="own-go" data-go="key"><b>Den+ key maker</b><span>Make a Den+ key</span></button><button type="button" class="own-go" data-go="reset"><b>Password reset code</b><span>For "Forgot your password?"</span></button><button type="button" class="own-go" data-go="rec"><b>Account recovery link</b><span>No backup file needed</span></button><button type="button" class="own-go" data-go="feat"><b>Featured Photos</b><span>Weekly photos shown on the front page</span></button></div>'
+      + '<section class="own-v" data-v="visits" hidden><div class="own-note">Signed-in people: name, email and visit time only.</div><div class="own-list" id="ownList"><div class="own-row"><span>Loading...</span></div></div><button type="button" class="own-btn" id="ownRef">Refresh</button></section>'
+      + '<section class="own-v" data-v="key" hidden>' + tool('ownK', 'Den+ key maker', 'Same as your private key maker: DENPLUS..., checked on the device.', '<label for="ownKE">Account email</label><input id="ownKE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownKD">Length</label><select id="ownKD"><option value="31">1 month (31 days)</option><option value="93">3 months</option><option value="186">6 months</option><option value="365">1 year</option></select><button type="button" class="own-btn p" id="ownKGo">Make Den+ key</button>')
+      + '</section><section class="own-v" data-v="reset" hidden>' + tool('ownR', 'Password reset code', 'DENRESET..., one use, for the email you type.', '<label for="ownRE">Account email</label><input id="ownRE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownRH">Valid for</label><select id="ownRH"><option value="24">24 hours</option><option value="48" selected>48 hours</option><option value="168">7 days</option></select><button type="button" class="own-btn p" id="ownRGo">Make reset code</button>')
+      + '</section><section class="own-v" data-v="rec" hidden><div class="own-box"><b>Account recovery link (no file needed)</b><div class="own-note">For someone who lost their account and has no backup file. Brings back a working login (with the temporary password you choose) and their Den+. It cannot bring back photos, templates or layouts. Works once per device.</div>'
       + '<label for="ownBE">Customer\'s account email</label><input id="ownBE" type="email" autocapitalize="none" autocomplete="off" placeholder="name@email.com"><label for="ownBN">Name on the account</label><input id="ownBN" type="text" maxlength="40" autocomplete="off" placeholder="Their name">'
       + '<label for="ownBP">Temporary password (at least 6 characters)</label><input id="ownBP" type="text" autocapitalize="none" autocomplete="off" spellcheck="false"><button type="button" class="own-btn" id="ownBG">Make a password</button>'
       + '<label for="ownBD">Den+ days to include (0 = none, max 365)</label><input id="ownBD" type="number" inputmode="numeric" value="31" min="0" max="365"><label for="ownBH">Link works for how many hours (1 to 168)</label><input id="ownBH" type="number" inputmode="numeric" value="72" min="1" max="168">'
       + '<button type="button" class="own-btn p" id="ownBGo">Make recovery link</button><div class="own-msg" id="ownBMsg"></div>'
       + '<div id="ownBBox" hidden><div class="own-note" id="ownBUntil"></div><label>Recovery link</label><textarea class="own-out" id="ownBLink" readonly></textarea><button type="button" class="own-btn" data-cp="ownBLink">Copy link</button>'
       + '<label>Recovery code (paste under "Restore from link or code")</label><textarea class="own-out" id="ownBCode" readonly></textarea><button type="button" class="own-btn" data-cp="ownBCode">Copy code</button>'
-      + '<label>Message to send the customer</label><textarea class="own-out" id="ownBText" readonly></textarea><button type="button" class="own-btn" data-cp="ownBText">Copy message</button></div></div>'
+      + '<label>Message to send the customer</label><textarea class="own-out" id="ownBText" readonly></textarea><button type="button" class="own-btn" data-cp="ownBText">Copy message</button></div></div></section>'
+      + '<section class="own-v" data-v="feat" hidden><div class="own-note">Photos here show on the front page for everybody. Only you can change them. Changes go live right away.</div><div class="own-box"><b>Add photos</b><label for="ownFC">Caption (optional)</label><input id="ownFC" type="text" maxlength="80" autocomplete="off" placeholder="Week 48 favorite"><label for="ownFU">Credit (optional)</label><input id="ownFU" type="text" maxlength="40" autocomplete="off" placeholder="@username"><input id="ownFF" type="file" accept="image/*" multiple hidden><button type="button" class="own-btn p" id="ownFAdd">Choose photos</button><div class="own-msg" id="ownFMsg"></div></div><div id="ownFList"></div><input id="ownFR" type="file" accept="image/*" hidden></section>'
       + '</div>';
     document.body.appendChild(m);
-    const close = () => { m.hidden = true; document.body.style.removeProperty('overflow'); };
+    const close = () => { m.hidden = true; document.body.style.removeProperty('overflow'); ownGo(''); };
     m.addEventListener('click', (e) => {
       if (e.target.closest('[data-ox]')) return close();
+      const g = e.target.closest('[data-go]'); if (g) return ownGo(g.getAttribute('data-go'));
+      if (e.target.closest('#ownBack')) return ownGo('');
       const c = e.target.closest('[data-cp]'); if (c) { const el = $(c.getAttribute('data-cp')); ownCopy(el.value, c); }
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) close(); });
@@ -9729,6 +9737,15 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     });
     return m;
   }
+  const OWN_TITLES = { visits: 'Who visited', key: 'Den+ key maker', reset: 'Password reset code', rec: 'Account recovery link', feat: 'Featured Photos' };
+  function ownGo(v) {                                                          // '' = the four buttons; otherwise that one tool opens full screen
+    const m = $('ownM'); if (!m) return;
+    m.classList.toggle('full', !!v); $('ownHome').hidden = !!v; $('ownBack').hidden = !v; $('ownT').textContent = v ? OWN_TITLES[v] : 'Owner panel';
+    m.querySelectorAll('.own-v').forEach((el) => { el.hidden = el.getAttribute('data-v') !== v; });
+    const c = m.querySelector('.own-c'); if (c) c.scrollTop = 0;
+    if (v === 'visits') ownerVisits();
+    if (v === 'feat') featOwnerLoad();
+  }
   function ownCopy(text, btn) {
     const done = () => { if (btn) { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); } };
     try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, () => ownCopyOld(text, done)); return; } } catch (e) { /* fall through */ }
@@ -9745,9 +9762,73 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       box.innerHTML = j.visits.length ? j.visits.map((v) => '<div class="own-row"><b>' + ownEsc(v.name || '(no name)') + '</b><em>' + ownEsc(fmt(v.last)) + '</em><span>' + ownEsc(v.email) + '</span><span>' + v.n + ' visit' + (v.n === 1 ? '' : 's') + '</span></div>').join('') : '<div class="own-row"><span>No visits recorded yet. People appear here the next time they open the site while signed in.</span></div>';
     } catch (e) { box.innerHTML = '<div class="own-row"><span>Could not load. Tap Refresh.</span></div>'; }
   }
+  /* ---- Featured Photos: public gallery on the front page (read-only, no login, no cookies sent) + the owner's manager ---- */
+  const FT = { items: [] };
+  const ftImg = (it) => '/api/featured/img/' + it.id + '?v=' + it.v;
+  function ftRender() {
+    const sec = $('whFeat'), tr = $('ftTrack'); if (!sec || !tr) return;
+    sec.hidden = !FT.items.length;
+    tr.innerHTML = FT.items.map((it, i) => '<button type="button" class="ft-card" data-i="' + i + '"><img loading="lazy" decoding="async" draggable="false" alt="' + ownEsc(it.caption || 'Featured photo strip') + '" src="' + ftImg(it) + '">' + (it.caption ? '<span class="ft-cap">' + ownEsc(it.caption) + '</span>' : '') + (it.credit ? '<span class="ft-cr">' + ownEsc(it.credit) + '</span>' : '') + '</button>').join('');
+  }
+  async function featLoad() {
+    try { const r = await fetch('/api/featured', { credentials: 'omit', cache: 'no-store' }), j = await r.json(); if (r.ok && j.ok) { FT.items = j.items || []; ftRender(); } } catch (e) { /* the gallery just stays as it is */ }
+  }
+  function ftLightbox(i) {
+    const it = FT.items[i]; if (!it) return;
+    let lb = $('ftLb'); if (!lb) { lb = document.createElement('div'); lb.className = 'ft-lb'; lb.id = 'ftLb'; lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.innerHTML = '<img alt=""><p></p><button type="button" aria-label="Close">Close</button>'; document.body.appendChild(lb); lb.addEventListener('click', () => { lb.hidden = true; }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; }); }
+    lb.querySelector('img').src = ftImg(it); lb.querySelector('p').textContent = [it.caption, it.credit].filter(Boolean).join('  ·  '); lb.hidden = false;
+  }
+  document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('.ft-card'); if (c) ftLightbox(+c.getAttribute('data-i')); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', featLoad); else setTimeout(featLoad, 0);
+  const ftOwn = async (path, opt, msgId) => {                                  // every change goes to the owner-only routes; the server re-checks who is asking
+    const h = { 'X-Den-Cloud': '1' }; if (opt.json) h['Content-Type'] = 'application/json';
+    try {
+      const r = await fetch(path, { method: opt.method || 'POST', credentials: 'same-origin', cache: 'no-store', headers: h, body: opt.json ? JSON.stringify(opt.json) : opt.body }), j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { const e = { full: 'The gallery is full (24 photos). Delete one first.', too_large: 'That photo is too big.', bad_type: 'Use a JPG, PNG or WebP photo.' }; const m = $(msgId); if (m) { m.textContent = e[j.error] || 'Could not save. Try again.'; m.className = 'own-msg err'; } return null; }
+      FT.items = j.items || FT.items; ftRender(); featOwnerDraw(); return j;
+    } catch (e) { const m = $(msgId); if (m) { m.textContent = 'No connection. Try again.'; m.className = 'own-msg err'; } return null; }
+  };
+  const ftShrink = (file) => new Promise((res, rej) => {                       // keeps uploads small: longest side 1600px, JPEG
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { try { const k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k)); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); c.toBlob((b) => { URL.revokeObjectURL(u); b ? res(b) : rej(new Error('x')); }, 'image/jpeg', 0.88); } catch (e) { rej(e); } };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('x')); }; im.src = u;
+  });
+  function featOwnerDraw() {
+    const box = $('ownFList'); if (!box) return;
+    const n = FT.items.length;
+    box.innerHTML = n ? FT.items.map((it, i) => '<div class="own-ft" data-id="' + it.id + '"><img alt="" src="' + ftImg(it) + '"><div><input data-f="caption" maxlength="80" placeholder="Caption" value="' + ownEsc(it.caption) + '" aria-label="Caption"><input data-f="credit" maxlength="40" placeholder="Credit, e.g. @username" value="' + ownEsc(it.credit) + '" aria-label="Credit"></div><div class="own-fb"><button type="button" class="own-btn p" data-fa="save">Save</button><button type="button" class="own-btn" data-fa="up"' + (i === 0 ? ' disabled' : '') + ' aria-label="Move earlier">&uarr;</button><button type="button" class="own-btn" data-fa="down"' + (i === n - 1 ? ' disabled' : '') + ' aria-label="Move later">&darr;</button><button type="button" class="own-btn" data-fa="rep">Replace photo</button><button type="button" class="own-btn" data-fa="del">Delete</button></div></div>').join('') : '<div class="own-note">No featured photos yet.</div>';
+  }
+  async function featOwnerLoad() { await featLoad(); featOwnerDraw(); }
+  let ftRepId = '';
+  function featOwnerWire() {
+    if (featOwnerWire.done || !$('ownFAdd')) return; featOwnerWire.done = true;
+    $('ownFAdd').addEventListener('click', () => $('ownFF').click());
+    $('ownFF').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []); e.target.value = ''; const m = $('ownFMsg'); m.className = 'own-msg'; let ok = 0;
+      for (let i = 0; i < files.length; i++) {
+        m.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '...';
+        let b; try { b = await ftShrink(files[i]); } catch (x) { m.textContent = 'Could not read ' + files[i].name; m.className = 'own-msg err'; continue; }
+        const q = '?caption=' + encodeURIComponent(files.length === 1 ? $('ownFC').value : '') + '&credit=' + encodeURIComponent($('ownFU').value);
+        if (await ftOwn('/api/owner/featured' + q, { body: b }, 'ownFMsg')) ok++; else break;
+      }
+      if (ok) { m.textContent = ok + ' photo' + (ok === 1 ? '' : 's') + ' added. Live now.'; $('ownFC').value = ''; }
+    });
+    $('ownFR').addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f || !ftRepId) return; const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Replacing...';
+      let b; try { b = await ftShrink(f); } catch (x) { m.textContent = 'Could not read that photo.'; m.className = 'own-msg err'; return; }
+      if (await ftOwn('/api/owner/featured/' + ftRepId + '/image', { method: 'PUT', body: b }, 'ownFMsg')) m.textContent = 'Photo replaced. Live now.';
+    });
+    $('ownFList').addEventListener('click', async (e) => {
+      const bt = e.target.closest('[data-fa]'); if (!bt) return; const row = bt.closest('.own-ft'), id = row.getAttribute('data-id'), a = bt.getAttribute('data-fa'), m = $('ownFMsg'); m.className = 'own-msg';
+      if (a === 'save') { m.textContent = 'Saving...'; const q = (k) => row.querySelector('[data-f="' + k + '"]').value; if (await ftOwn('/api/owner/featured/' + id, { json: { caption: q('caption'), credit: q('credit') } }, 'ownFMsg')) m.textContent = 'Saved. Live now.'; }
+      else if (a === 'rep') { ftRepId = id; $('ownFR').click(); }
+      else if (a === 'del') { if (!confirm('Delete this featured photo?')) return; m.textContent = 'Deleting...'; if (await ftOwn('/api/owner/featured/' + id + '/delete', {}, 'ownFMsg')) m.textContent = 'Deleted.'; }
+      else if (a === 'up' || a === 'down') { const ids = FT.items.map((x) => x.id), i = ids.indexOf(id), k = a === 'up' ? i - 1 : i + 1; if (k < 0 || k >= ids.length) return; ids.splice(k, 0, ids.splice(i, 1)[0]); m.textContent = 'Saving order...'; if (await ftOwn('/api/owner/featured/order', { json: { ids } }, 'ownFMsg')) m.textContent = 'Order saved. Live now.'; }
+    });
+  }
   function openOwner() {
     if (!ownerIs()) return openDenPlus();
-    const m = ownerBuild(); m.hidden = false; document.body.style.overflow = 'hidden'; $('ownWarn').hidden = OWN.signing; ownerVisits();
+    const m = ownerBuild(); featOwnerWire(); m.hidden = false; document.body.style.overflow = 'hidden'; $('ownWarn').hidden = OWN.signing; ownGo('');
     try { setAcctOpen(false); } catch (e) { /* ignore */ }
     setTimeout(() => { try { m.querySelector('.own-x').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
   }
@@ -19858,6 +19939,21 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   if (typeof window.__denEvFsTest === 'function') window.__denEvFsTest({ live: live, onGesture: onGesture, sync: sync, state: function () { return { dismissed: dismissed, wasLive: wasLive, enteredByUs: enteredByUs }; } });
 })();
 </script>
+<style id="feat-css">
+#whFeat[hidden]{display:none}
+.ft-wrap{margin:14px 0 0}
+.ft-track{display:flex;gap:16px;overflow-x:auto;padding:10px 6px 18px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
+.ft-card{flex:0 0 auto;width:clamp(150px,42vw,220px);scroll-snap-align:center;margin:0;padding:10px 10px 12px;border:2px solid #3b2f2f;border-radius:16px;box-shadow:3px 5px 0 rgba(59,47,47,.18);background:linear-gradient(180deg,#eaf3fb 0,#fffdf7 55%,#f3e9d6 100%);cursor:zoom-in;font:inherit;color:#3b2f2f;text-align:center}
+.ft-card:focus-visible{outline:3px solid #6aa7d8;outline-offset:2px}
+.ft-card img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:8px;background:#fff}
+.ft-cap{display:block;margin-top:8px;font-weight:700;font-size:.9rem;line-height:1.25;word-break:break-word}
+.ft-cr{display:block;margin-top:2px;font-size:.78rem;opacity:.75;word-break:break-word}
+.ft-lb{position:fixed;inset:0;z-index:10040;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));background:rgba(30,40,55,.82)}
+.ft-lb[hidden]{display:none}
+.ft-lb img{max-width:min(92vw,520px);max-height:76vh;object-fit:contain;border-radius:10px;background:#fff;border:2px solid #fff}
+.ft-lb p{margin:0;color:#fff;text-align:center;font-weight:700;max-width:92vw}
+.ft-lb button{min-height:44px;min-width:44px;padding:4px 16px;border:2px solid #3b2f2f;border-radius:12px;background:#fffdf7;font:inherit;font-weight:700;cursor:pointer}
+</style>
 <style id="edit-split">
 /* Editing page, tablets and computers (701px and wider): the left side (the big live preview) is fixed and never scrolls; only the right side (templates, filters, colours,
    stickers, scribble) scrolls on its own. The two sides are positioned inside a fixed-height box, so no browser can let them push each other or the page. Phones keep the stacked layout.

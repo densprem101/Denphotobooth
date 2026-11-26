@@ -604,7 +604,70 @@ async function ownerRoute(req, env, url, path, user) {
     } else return fail(400, 'bad_kind');
     log('owner_sign', { kind }); return json({ ok: true, ...out });
   }
+  if (path.startsWith('/api/owner/featured')) return featuredOwner(req, env, url, path);
   return fail(404, 'not_found');
+}
+
+/* ---------- 6e. Featured Photos (Part 2) ----------
+   The weekly showcase on the front page. Everybody can READ it (GET /api/featured and the pictures). Only the verified owner (ownerOk above) can change it:
+   every write goes through /api/owner/featured..., which answers 404 to anybody else. Pictures live in R2 (featured/<id>) and are indexed in the D1 table
+   `featured` (created by itself the first time it is needed). Nothing here touches a cookie, a token, a session, the users table or anybody's Photo Archive. ---------- */
+const FEAT_MAX = 24, FEAT_BYTES = 6 * 1024 * 1024, FEAT_ID = /^[a-f0-9]{20}$/;
+let featReady = null;
+const ensureFeat = (env) => (featReady = featReady || env.DB.prepare('CREATE TABLE IF NOT EXISTS featured (id TEXT PRIMARY KEY, pos INTEGER, caption TEXT, credit TEXT, ctype TEXT, size INTEGER, v INTEGER, created INTEGER)').run().catch((e) => { featReady = null; throw e; }));
+const featList = async (env) => ((await env.DB.prepare('SELECT id, pos, caption, credit, v FROM featured ORDER BY pos ASC, created ASC').all()).results || []).map((r) => ({ id: r.id, caption: r.caption || '', credit: r.credit || '', v: r.v }));
+function sniffImage(u) {
+  if (u.length > 12 && u[0] === 0xFF && u[1] === 0xD8 && u[2] === 0xFF) return 'image/jpeg';
+  if (u.length > 12 && u[0] === 0x89 && u[1] === 0x50 && u[2] === 0x4E && u[3] === 0x47) return 'image/png';
+  if (u.length > 12 && u[0] === 0x52 && u[1] === 0x49 && u[2] === 0x46 && u[3] === 0x46 && u[8] === 0x57 && u[9] === 0x45 && u[10] === 0x42 && u[11] === 0x50) return 'image/webp';
+  return '';
+}
+const featText = (v, n) => String(v == null ? '' : v).normalize('NFKC').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+async function featuredPublic(req, env, url, path) {                // read-only, no login, no cookies
+  if (req.method !== 'GET') return fail(405, 'method');
+  try {
+    await ensureFeat(env);
+    if (path === '/api/featured') return json({ ok: true, items: await featList(env) }, 200, { 'Cache-Control': 'public, max-age=15' });
+    const m = /^\/api\/featured\/img\/([a-f0-9]{20})$/.exec(path); if (!m) return fail(404, 'not_found');
+    const row = await env.DB.prepare('SELECT ctype FROM featured WHERE id = ?').bind(m[1]).first(); if (!row) return fail(404, 'not_found');
+    const o = await env.FILES.get('featured/' + m[1]); if (!o) return fail(404, 'not_found');
+    return new Response(o.body, { headers: { 'Content-Type': row.ctype || 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' } });   // the address carries ?v=, so a replaced picture is a new address
+  } catch (e) { return fail(500, 'featured_failed'); }
+}
+async function featuredOwner(req, env, url, path) {                 // only reached after ownerOk(): 404 for everyone else
+  try {
+    await ensureFeat(env);
+    const read = async () => {
+      const len = Number(req.headers.get('Content-Length') || 0); if (len > FEAT_BYTES + 1024) return { err: fail(413, 'too_large') };
+      const u = new Uint8Array(await req.arrayBuffer()); if (u.length > FEAT_BYTES) return { err: fail(413, 'too_large') };
+      const type = sniffImage(u); if (!type) return { err: fail(415, 'bad_type') }; return { u, type };
+    };
+    if (path === '/api/owner/featured' && req.method === 'POST') {            // add a picture
+      const n = (await env.DB.prepare('SELECT COUNT(*) AS c, COALESCE(MAX(pos), 0) AS m FROM featured').first()) || { c: 0, m: 0 }; if (n.c >= FEAT_MAX) return fail(409, 'full');
+      const r = await read(); if (r.err) return r.err; const id = hex(rand(10)), t = now();
+      await env.FILES.put('featured/' + id, r.u, { httpMetadata: { contentType: r.type } });
+      await env.DB.prepare('INSERT INTO featured (id, pos, caption, credit, ctype, size, v, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(id, Number(n.m) + 1, featText(url.searchParams.get('caption'), 80), featText(url.searchParams.get('credit'), 40), r.type, r.u.length, t, t).run();
+      return json({ ok: true, items: await featList(env), id });
+    }
+    if (path === '/api/owner/featured/order' && req.method === 'POST') {      // new order
+      let b; try { b = await req.json(); } catch (e) { return fail(400, 'bad_request'); } const ids = Array.isArray(b && b.ids) ? b.ids.filter((x) => FEAT_ID.test(String(x))).slice(0, FEAT_MAX) : [];
+      for (let i = 0; i < ids.length; i++) await env.DB.prepare('UPDATE featured SET pos = ? WHERE id = ?').bind(i + 1, ids[i]).run();
+      return json({ ok: true, items: await featList(env) });
+    }
+    const m = /^\/api\/owner\/featured\/([a-f0-9]{20})(\/image|\/delete)?$/.exec(path); if (!m) return fail(404, 'not_found');
+    const id = m[1], row = await env.DB.prepare('SELECT id FROM featured WHERE id = ?').bind(id).first(); if (!row) return fail(404, 'not_found');
+    if (m[2] === '/image' && req.method === 'PUT') {                          // swap the picture, keep the slot, caption and credit
+      const r = await read(); if (r.err) return r.err; const t = now();
+      await env.FILES.put('featured/' + id, r.u, { httpMetadata: { contentType: r.type } });
+      await env.DB.prepare('UPDATE featured SET ctype = ?, size = ?, v = ? WHERE id = ?').bind(r.type, r.u.length, t, id).run(); return json({ ok: true, items: await featList(env) });
+    }
+    if (m[2] === '/delete' && req.method === 'POST') { try { await env.FILES.delete('featured/' + id); } catch (e) { /* the row below is what hides it */ } await env.DB.prepare('DELETE FROM featured WHERE id = ?').bind(id).run(); return json({ ok: true, items: await featList(env) }); }
+    if (!m[2] && req.method === 'POST') {                                     // caption + credit
+      let b; try { b = await req.json(); } catch (e) { return fail(400, 'bad_request'); }
+      await env.DB.prepare('UPDATE featured SET caption = ?, credit = ? WHERE id = ?').bind(featText(b && b.caption, 80), featText(b && b.credit, 40), id).run(); return json({ ok: true, items: await featList(env) });
+    }
+    return fail(404, 'not_found');
+  } catch (e) { return fail(500, 'featured_failed'); }
 }
 
 /* ---------- 7. router ---------- */
@@ -624,6 +687,7 @@ export default {
         if (!sameSiteOk(req, url)) return fail(403, 'forbidden');
         return path === '/api/auth/login' ? authLogin(req, env) : authRegister(req, env, await currentUser(req, env));
       }
+      if (path === '/api/featured' || path.startsWith('/api/featured/')) return featuredPublic(req, env, url, path);   // public read-only showcase, no login needed
       if (path.startsWith('/api/booth/')) return boothRoute(req, env, url, path);   // before the login lookup on purpose: guests need no account, and this never touches a session
       if (path.startsWith('/api/share/')) return shareRoute(req, env, url, path);   // guest QR links: before the login lookup on purpose (guests need no account; this never touches a session)
       const user = await currentUser(req, env);
