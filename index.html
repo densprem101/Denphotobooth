@@ -2690,9 +2690,12 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     </div>
     <div class="wh-sections" id="whSections">
       <section class="wh-sec" id="whFeat" aria-labelledby="whFeatH" hidden>
-        <p class="wh-eyebrow" aria-hidden="true">Picked this week</p>
-        <h2 class="wh-h" id="whFeatH">Featured Photos</h2>
-        <div class="ft-wrap"><div class="ft-track" id="ftTrack" aria-label="Featured photo strips"></div></div>
+        <p class="wh-eyebrow">Community</p>
+        <h2 class="wh-h" id="whFeatH">DEN PICKS</h2>
+        <p class="dp-desc" id="dpDesc"></p>
+        <div class="dp-board" id="dpBoard"><div class="dp-in" id="ftTrack"></div></div>
+        <div class="dp-pills" id="dpPills"></div>
+        <p class="dp-getw"><button type="button" class="dp-get" id="dpGet">Get featured</button></p>
       </section>
       <section class="wh-sec" id="whHow" aria-labelledby="whHowH" aria-roledescription="carousel" data-i="0">
         <h2 class="wh-h" id="whHowH">How it works</h2>
@@ -9702,7 +9705,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const tool = (id, title, note, body) => '<div class="own-box"><b>' + title + '</b><div class="own-note">' + note + '</div>' + body + '<div class="own-msg" id="' + id + 'Msg"></div><textarea class="own-out" id="' + id + 'Out" readonly hidden></textarea><div id="' + id + 'Act" hidden><button type="button" class="own-btn" data-cp="' + id + 'Out">Copy</button> <button type="button" class="own-btn" data-cp="' + id + 'Say">Copy message</button><textarea id="' + id + 'Say" hidden></textarea></div></div>';
     m.innerHTML = '<div class="own-s" data-ox></div><div class="own-c"><div class="own-top"><button type="button" class="own-x" id="ownBack" hidden aria-label="Back">&larr;</button><h2 id="ownT">Owner panel</h2><button type="button" class="own-x" data-ox aria-label="Close">&times;</button></div>'
       + '<p class="own-note">Only you can see this. It never shows anybody\'s photos or archive.</p><div class="own-warn" id="ownWarn" hidden>Code making is not switched on yet. Add the secret <b>DEN_SIGN_JWK</b> in Cloudflare (see OWNER-SETUP.md), then reopen this panel.</div>'
-      + '<div class="own-home" id="ownHome"><button type="button" class="own-go" data-go="visits"><b>Who visited</b><span>Names, emails and visit times</span></button><button type="button" class="own-go" data-go="key"><b>Den+ key maker</b><span>Make a Den+ key</span></button><button type="button" class="own-go" data-go="reset"><b>Password reset code</b><span>For "Forgot your password?"</span></button><button type="button" class="own-go" data-go="rec"><b>Account recovery link</b><span>No backup file needed</span></button><button type="button" class="own-go" data-go="feat"><b>Featured Photos</b><span>Weekly photos shown on the front page</span></button></div>'
+      + '<div class="own-home" id="ownHome"><button type="button" class="own-go" data-go="visits"><b>Who visited</b><span>Names, emails and visit times</span></button><button type="button" class="own-go" data-go="key"><b>Den+ key maker</b><span>Make a Den+ key</span></button><button type="button" class="own-go" data-go="reset"><b>Password reset code</b><span>For "Forgot your password?"</span></button><button type="button" class="own-go" data-go="rec"><b>Account recovery link</b><span>No backup file needed</span></button><button type="button" class="own-go" data-go="feat"><b>DEN PICKS</b><span>Weekly picks board on the front page</span></button></div>'
       + '<section class="own-v" data-v="visits" hidden><div class="own-note">Signed-in people: name, email and visit time only.</div><div class="own-list" id="ownList"><div class="own-row"><span>Loading...</span></div></div><button type="button" class="own-btn" id="ownRef">Refresh</button></section>'
       + '<section class="own-v" data-v="key" hidden>' + tool('ownK', 'Den+ key maker', 'Same as your private key maker: DENPLUS..., checked on the device.', '<label for="ownKE">Account email</label><input id="ownKE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownKD">Length</label><select id="ownKD"><option value="31">1 month (31 days)</option><option value="93">3 months</option><option value="186">6 months</option><option value="365">1 year</option></select><button type="button" class="own-btn p" id="ownKGo">Make Den+ key</button>')
       + '</section><section class="own-v" data-v="reset" hidden>' + tool('ownR', 'Password reset code', 'DENRESET..., one use, for the email you type.', '<label for="ownRE">Account email</label><input id="ownRE" type="email" autocapitalize="none" autocomplete="off" placeholder="user@gmail.com"><label for="ownRH">Valid for</label><select id="ownRH"><option value="24">24 hours</option><option value="48" selected>48 hours</option><option value="168">7 days</option></select><button type="button" class="own-btn p" id="ownRGo">Make reset code</button>')
@@ -9714,7 +9717,12 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       + '<div id="ownBBox" hidden><div class="own-note" id="ownBUntil"></div><label>Recovery link</label><textarea class="own-out" id="ownBLink" readonly></textarea><button type="button" class="own-btn" data-cp="ownBLink">Copy link</button>'
       + '<label>Recovery code (paste under "Restore from link or code")</label><textarea class="own-out" id="ownBCode" readonly></textarea><button type="button" class="own-btn" data-cp="ownBCode">Copy code</button>'
       + '<label>Message to send the customer</label><textarea class="own-out" id="ownBText" readonly></textarea><button type="button" class="own-btn" data-cp="ownBText">Copy message</button></div></div></section>'
-      + '<section class="own-v" data-v="feat" hidden><div class="own-note">Photos here show on the front page for everybody. Up to 6 photos fit on the front page at once. Credit = Instagram username (it becomes a link). Changes go live right away.</div><div class="own-box"><b>Add photos</b><label for="ownFC">Caption (optional)</label><input id="ownFC" type="text" maxlength="80" autocomplete="off" placeholder="Week 48 favorite"><label for="ownFU">Credit (optional)</label><input id="ownFU" type="text" maxlength="40" autocomplete="off" placeholder="Instagram username, e.g. neutralinthenines"><input id="ownFF" type="file" accept="image/*" multiple hidden><div class="own-drop" id="ownFDrop">Drag &amp; drop photos here<br><button type="button" class="own-btn p" id="ownFAdd">or choose photos</button></div><div class="own-msg" id="ownFMsg"></div></div><div class="own-box"><b>Animation (all photos)</b><select class="own-sel" id="ownFA" aria-label="Gallery animation"><option value="none">None</option><option value="fade">Fade up</option><option value="slide">Slide in</option><option value="zoom">Zoom in</option><option value="flip">Flip in</option><option value="bounce">Bouncy pop</option><option value="float">Gentle float</option><option value="sway">Swinging sway</option></select><label for="ownFS">Animation speed: <b id="ownFSv">5</b> (1 slow &ndash; 10 fast)</label><input id="ownFS" type="range" min="1" max="10" step="1" value="5"></div><div class="own-box"><b>Background</b><label for="ownFM">Type</label><select class="own-sel" id="ownFM"><option value="gradient">Gradient</option><option value="solid">Solid color</option></select><label for="ownFB1">Color 1</label><input id="ownFB1" type="color" value="#eaf3fb"><div id="ownFG"><label for="ownFB2">Color 2</label><input id="ownFB2" type="color" value="#f3e9d6"><label><input id="ownFT" type="checkbox" style="width:auto;min-height:0"> Add a 3rd color</label><input id="ownFB3" type="color" value="#ffffff" hidden><label for="ownFAng">Direction: <b id="ownFAngv">160</b>&deg;</label><input id="ownFAng" type="range" min="0" max="360" step="5" value="160"></div><div class="own-note" style="margin-top:6px">Presets</div><div class="own-fb" id="ownFPre"><button type="button" class="own-btn" data-pre="gradient|#eaf3fb|#f3e9d6||160">Sky &amp; beige</button><button type="button" class="own-btn" data-pre="gradient|#ffd9e6|#fff2cc||160">Peach pink</button><button type="button" class="own-btn" data-pre="gradient|#d9f2e3|#e8f1ff||160">Mint sky</button><button type="button" class="own-btn" data-pre="gradient|#e6dcff|#ffe3f1||160">Lilac</button><button type="button" class="own-btn" data-pre="gradient|#ffd1dc|#fff3b0|#c9f0ff|135">Sunrise</button><button type="button" class="own-btn" data-pre="gradient|#a8e6cf|#dcedc1|#ffd3b6|200">Meadow</button><button type="button" class="own-btn" data-pre="solid|#fffdf7|||0">Cream</button><button type="button" class="own-btn" data-pre="solid|#cfe1f3|||0">Sky blue</button></div></div><div class="own-note" style="margin-top:8px">Drag the &#8942;&#8942; handle to reorder.</div><div id="ownFList"></div><input id="ownFR" type="file" accept="image/*" hidden></section>'
+      + '<section class="own-v" data-v="feat" hidden><div class="own-note">DEN PICKS shows on the front page for everybody. Only you can change it. Changes go live right away.</div><div class="own-box"><b>Add strips (max 6)</b><label for="ownFC">Caption (optional)</label><input id="ownFC" type="text" maxlength="80" autocomplete="off" placeholder="Week favorite"><label for="ownFU">Instagram username (optional)</label><input id="ownFU" type="text" maxlength="40" autocomplete="off" placeholder="neutralinthenines"><input id="ownFF" type="file" accept="image/*" multiple hidden><div class="own-drop" id="ownFDrop">Drag &amp; drop strips here<br><button type="button" class="own-btn p" id="ownFAdd">or choose photos</button></div><div class="own-msg" id="ownFMsg"></div></div>'
+      + '<div class="own-box"><b>Board &amp; arrangement</b><div class="own-note">Auto keeps the strips centered. To place them yourself, drag any strip on the board (it switches to Free). Tap a strip to tilt or resize it.</div><div class="dp-board" id="ownBoard"><div class="dp-in" id="ownTrack"></div></div><div class="own-fb" style="margin-top:8px"><button type="button" class="own-btn" id="ownFAuto">Auto (centered)</button><span class="own-note" id="ownFLay" style="align-self:center;margin:0"></span></div><label for="ownFRot">Tilt of selected strip: <b id="ownFRotv">0</b>&deg;</label><input id="ownFRot" type="range" min="-45" max="45" step="1" value="0"><label for="ownFSc">Size of selected strip: <b id="ownFScv">100</b>%</label><input id="ownFSc" type="range" min="50" max="200" step="5" value="100"></div>'
+      + '<div class="own-box"><b>Texts</b><label for="ownFD">Description</label><textarea id="ownFD" class="own-sel" rows="3" maxlength="200"></textarea><label for="ownFTG">Telegram username (for the Get featured guide)</label><input id="ownFTG" type="text" maxlength="33" autocomplete="off" placeholder="denblake123" value="denblake123"><button type="button" class="own-btn p" id="ownFTx">Save texts</button></div>'
+      + '<div class="own-box"><b>Board background</b><label for="ownFM">Type</label><select class="own-sel" id="ownFM"><option value="image">Picture</option><option value="gradient">Gradient</option><option value="solid">Solid color</option></select><div class="own-fb" style="margin-top:6px"><input id="ownFBgF" type="file" accept="image/*" hidden><button type="button" class="own-btn p" id="ownFBgAdd">Upload background picture</button><button type="button" class="own-btn" id="ownFBgDel">Remove picture</button></div><label for="ownFB1">Color 1</label><input id="ownFB1" type="color" value="#eaf3fb"><div id="ownFG"><label for="ownFB2">Color 2</label><input id="ownFB2" type="color" value="#f3e9d6"><label><input id="ownFT" type="checkbox" style="width:auto;min-height:0"> Add a 3rd color</label><input id="ownFB3" type="color" value="#ffffff" hidden><label for="ownFAng">Direction: <b id="ownFAngv">160</b>&deg;</label><input id="ownFAng" type="range" min="0" max="360" step="5" value="160"></div><div class="own-note" style="margin-top:6px">Presets</div><div class="own-fb" id="ownFPre"><button type="button" class="own-btn" data-pre="gradient|#eaf3fb|#f3e9d6||160">Sky &amp; beige</button><button type="button" class="own-btn" data-pre="gradient|#ffd9e6|#fff2cc||160">Peach pink</button><button type="button" class="own-btn" data-pre="gradient|#d9f2e3|#e8f1ff||160">Mint sky</button><button type="button" class="own-btn" data-pre="gradient|#e6dcff|#ffe3f1||160">Lilac</button><button type="button" class="own-btn" data-pre="gradient|#ffd1dc|#fff3b0|#c9f0ff|135">Sunrise</button><button type="button" class="own-btn" data-pre="gradient|#a8e6cf|#dcedc1|#ffd3b6|200">Meadow</button><button type="button" class="own-btn" data-pre="solid|#fffdf7|||0">Cream</button><button type="button" class="own-btn" data-pre="solid|#cfe1f3|||0">Sky blue</button></div></div>'
+      + '<div class="own-box"><b>Animation (all strips)</b><select class="own-sel" id="ownFA" aria-label="Animation"><option value="none">None</option><option value="fade">Fade up</option><option value="slide">Slide in</option><option value="zoom">Zoom in</option><option value="flip">Flip in</option><option value="bounce">Bouncy pop</option><option value="float">Gentle float</option><option value="sway">Swinging sway</option></select><label for="ownFS">Animation speed: <b id="ownFSv">5</b> (1 slow &ndash; 10 fast)</label><input id="ownFS" type="range" min="1" max="10" step="1" value="5"></div>'
+      + '<div class="own-note" style="margin-top:8px">Drag the &#8942;&#8942; handle to reorder (left to right).</div><div id="ownFList"></div><input id="ownFR" type="file" accept="image/*" hidden></section>'
       + '</div>';
     document.body.appendChild(m);
     const close = () => { m.hidden = true; document.body.style.removeProperty('overflow'); ownGo(''); };
@@ -9757,7 +9765,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     });
     return m;
   }
-  const OWN_TITLES = { visits: 'Who visited', key: 'Den+ key maker', reset: 'Password reset code', rec: 'Account recovery link', feat: 'Featured Photos' };
+  const OWN_TITLES = { visits: 'Who visited', key: 'Den+ key maker', reset: 'Password reset code', rec: 'Account recovery link', feat: 'DEN PICKS' };
   function ownGo(v) {                                                          // '' = the four buttons; otherwise that one tool opens full screen
     const m = $('ownM'); if (!m) return;
     m.classList.toggle('full', !!v); $('ownHome').hidden = !!v; $('ownBack').hidden = !v; $('ownT').textContent = v ? OWN_TITLES[v] : 'Owner panel';
@@ -9783,21 +9791,40 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     } catch (e) { box.innerHTML = '<div class="own-row"><span>Could not load. Tap Refresh.</span></div>'; }
   }
   /* ---- Featured Photos: public gallery on the front page (read-only, no login, no cookies sent) + the owner's manager ---- */
-  const FT = { items: [], cfg: { anim: 'fade', speed: 5, mode: 'gradient', bg1: '#eaf3fb', bg2: '#f3e9d6', bg3: '', ang: 160 } };
+  const FT = { items: [], cfg: { anim: 'fade', speed: 5, mode: 'gradient', bg1: '#eaf3fb', bg2: '#f3e9d6', bg3: '', ang: 160, bgv: 0, desc: '', week: '', tg: 'denblake123', layout: 'auto' } };
   const ftImg = (it) => '/api/featured/img/' + it.id + '?v=' + it.v;
   const ftBg = (c) => c.mode === 'solid' ? c.bg1 : 'linear-gradient(' + (c.ang == null ? 160 : c.ang) + 'deg,' + [c.bg1, c.bg2, c.bg3].filter(Boolean).join(',') + ')';
   const IGH = /^@?([A-Za-z0-9._]{1,30})$/;
+  const IG_USER = 'neutralinthenines', MAIL_TO = 'densprem02@gmail.com';
+  const dpPts = (n) => { const w = n <= 3 ? 18 : n === 4 ? 17 : n === 5 ? 15 : 13, g = 3; return { w, pts: Array.from({ length: n }, (_, i) => ({ x: 50 + (i - (n - 1) / 2) * (w + g), y: 46, rot: i % 2 ? 1.6 : -1.6, sc: 1 })) }; };
+  const dpAt = (i, n) => (FT.cfg.layout === 'free' && FT.items[i].at ? FT.items[i].at : dpPts(n).pts[i]);
+  function dpBoardBg(b) { const c = FT.cfg; b.classList.toggle('lt', !(c.mode === 'image' && c.bgv)); b.style.background = c.mode === 'image' && c.bgv ? 'url(/api/featured/bg?v=' + c.bgv + ') center/cover no-repeat, ' + c.bg1 : ftBg(c); }
+  function dpFill(track, edit) {
+    const n = FT.items.length, w = dpPts(n).w;
+    track.innerHTML = FT.items.map((it, i) => { const a = dpAt(i, n);
+      return '<div class="dp-it' + (edit ? ' ed' : '') + '" data-id="' + it.id + '" data-i="' + i + '" style="left:' + a.x + '%;top:' + a.y + '%;width:' + w + '%;--r:' + a.rot + 'deg;--s:' + a.sc + ';--i:' + i + '"><div class="dp-card"><button type="button" class="ft-pic" data-i="' + i + '"' + (edit ? ' tabindex="-1"' : '') + ' aria-label="View ' + ownEsc(it.caption || 'featured strip') + '"><img loading="lazy" decoding="async" draggable="false" alt="' + ownEsc(it.caption || 'Featured photo strip') + '" src="' + ftImg(it) + '"></button></div>' + (it.caption ? '<span class="dp-cap">' + ownEsc(it.caption) + '</span>' : '') + '</div>'; }).join('');
+  }
   function ftRender() {
     const sec = $('whFeat'), tr = $('ftTrack'); if (!sec || !tr) return;
-    const n = FT.items.length, w = tr.parentNode; sec.hidden = !n;
-    tr.setAttribute('data-anim', FT.cfg.anim); tr.style.setProperty('--cm', n <= 3 ? Math.max(1, n) : n === 4 ? 2 : 3); tr.style.setProperty('--cd', Math.max(1, n));
-    w.style.setProperty('--ftbg', ftBg(FT.cfg)); tr.style.setProperty('--sp', Math.max(0.5, Math.min(5, 5 / (FT.cfg.speed || 5))).toFixed(2));
-    tr.innerHTML = FT.items.map((it, i) => {
-      const h = IGH.exec(it.credit || '');
-      const cr = it.credit ? '<span class="ft-cr">' + (h ? '<a href="https://www.instagram.com/' + encodeURIComponent(h[1]) + '/" target="_blank" rel="noopener noreferrer">@' + ownEsc(h[1]) + '</a>' : ownEsc(it.credit)) + '</span>' : '';
-      return '<div class="ft-card" style="--i:' + i + '"><button type="button" class="ft-pic" data-i="' + i + '" aria-label="View ' + ownEsc(it.caption || 'featured photo') + '"><img loading="lazy" decoding="async" draggable="false" alt="' + ownEsc(it.caption || 'Featured photo strip') + '" src="' + ftImg(it) + '"></button>' + (it.caption ? '<span class="ft-cap">' + ownEsc(it.caption) + '</span>' : '') + cr + '</div>';
-    }).join('');
+    const n = FT.items.length, c = FT.cfg; sec.hidden = !n;
+    $('dpDesc').textContent = c.desc || '';
+    dpBoardBg($('dpBoard')); tr.setAttribute('data-anim', c.anim); tr.style.setProperty('--sp', Math.max(0.5, Math.min(5, 5 / (c.speed || 5))).toFixed(2)); dpFill(tr, false);
+    const order = FT.items.map((it, i) => i); if (c.layout === 'free') order.sort((a, b) => dpAt(a, n).x - dpAt(b, n).x);
+    $('dpPills').innerHTML = order.map((i) => { const it = FT.items[i], h = IGH.exec(it.credit || '');
+      if (!it.credit) return '';
+      return '<div class="dp-pi">' + (h ? '<a class="dp-pill" href="https://www.instagram.com/' + encodeURIComponent(h[1]) + '/" target="_blank" rel="noopener noreferrer">@' + ownEsc(h[1]) + '</a>' : it.credit ? '<span class="dp-pill">' + ownEsc(it.credit) + '</span>' : '') + '</div>'; }).join('');
   }
+  const ftCopy = async (t, btn) => { try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (x) { /* ignore */ } a.remove(); } if (btn) { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1400); } };
+  function dpGetOpen() {
+    let m = $('dpMd'); if (!m) { m = document.createElement('div'); m.className = 'dp-md'; m.id = 'dpMd'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); document.body.appendChild(m);
+      m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-x]')) { m.hidden = true; return; } const cp = e.target.closest('[data-cp]'); if (cp) ftCopy(cp.getAttribute('data-cp'), cp); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') m.hidden = true; }); }
+    const tg = FT.cfg.tg || 'denblake123', row = (k, v, href, label) => '<div class="dp-ct"><div style="flex:1 1 140px;min-width:0"><b>' + k + '</b><span>' + ownEsc(v) + '</span></div><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + '</a><button type="button" data-cp="' + ownEsc(v) + '">Copy</button></div>';
+    m.innerHTML = '<div class="dp-mc"><button type="button" class="dp-x" data-x aria-label="Close">&times;</button><h3>Get featured on DEN PICKS</h3><p>Every week we pick a few photostrips from the Den Collective community.</p><ol><li>Make your strip in Den Collective and save it.</li><li>Send it to us by Instagram, Telegram or email, and tell us your Instagram username.</li><li>If we pick it, your strip goes on the board with a link to your Instagram.</li></ol>'
+      + row('Instagram', '@' + IG_USER, 'https://www.instagram.com/' + IG_USER + '/', 'Open') + (tg ? row('Telegram', '@' + tg, 'https://t.me/' + encodeURIComponent(tg), 'Open') : '') + row('Email', MAIL_TO, 'mailto:' + MAIL_TO + '?subject=' + encodeURIComponent('DEN PICKS: my Den Collective strip'), 'Write') + '</div>';
+    m.hidden = false;
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#dpGet')) dpGetOpen(); });
   async function featLoad() {
     try { const r = await fetch('/api/featured', { credentials: 'omit', cache: 'no-store' }), j = await r.json(); if (r.ok && j.ok) { FT.items = j.items || []; FT.cfg = j.cfg || FT.cfg; ftRender(); } } catch (e) { /* the gallery just stays as it is */ }
   }
@@ -9806,13 +9833,13 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     let lb = $('ftLb'); if (!lb) { lb = document.createElement('div'); lb.className = 'ft-lb'; lb.id = 'ftLb'; lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.innerHTML = '<img alt=""><p></p><button type="button" aria-label="Close">Close</button>'; document.body.appendChild(lb); lb.addEventListener('click', () => { lb.hidden = true; }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; }); }
     lb.querySelector('img').src = ftImg(it); lb.querySelector('p').textContent = [it.caption, it.credit].filter(Boolean).join('  ·  '); lb.hidden = false;
   }
-  document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('.ft-pic'); if (c) ftLightbox(+c.getAttribute('data-i')); });
+  document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('.ft-pic'); if (c && !c.closest('.dp-it.ed')) ftLightbox(+c.getAttribute('data-i')); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', featLoad); else setTimeout(featLoad, 0);
   const ftOwn = async (path, opt, msgId) => {                                  // every change goes to the owner-only routes; the server re-checks who is asking
     const h = { 'X-Den-Cloud': '1' }; if (opt.json) h['Content-Type'] = 'application/json';
     try {
       const r = await fetch(path, { method: opt.method || 'POST', credentials: 'same-origin', cache: 'no-store', headers: h, body: opt.json ? JSON.stringify(opt.json) : opt.body }), j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.ok) { const e = { full: 'The gallery is full (6 photos). Delete one first.', too_large: 'That photo is too big.', bad_type: 'Use a JPG, PNG or WebP photo.' }; const m = $(msgId); if (m) { m.textContent = e[j.error] || 'Could not save. Try again.'; m.className = 'own-msg err'; } return null; }
+      if (!r.ok || !j.ok) { const e = { full: 'The board is full (6 strips). Delete one first.', too_large: 'That photo is too big.', bad_type: 'Use a JPG, PNG or WebP photo.', no_image: 'Upload a background picture first.', bad_handle: 'Telegram username: letters, numbers and _ only.' }; const m = $(msgId); if (m) { m.textContent = e[j.error] || 'Could not save. Try again.'; m.className = 'own-msg err'; } return null; }
       FT.items = j.items || FT.items; if (j.cfg && !opt.keepCfg) FT.cfg = j.cfg; ftRender(); featOwnerDraw(); return j;
     } catch (e) { const m = $(msgId); if (m) { m.textContent = 'No connection. Try again.'; m.className = 'own-msg err'; } return null; }
   };
@@ -9825,8 +9852,25 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const box = $('ownFList'); if (!box) return;
     const n = FT.items.length;
     box.innerHTML = n ? FT.items.map((it, i) => '<div class="own-ft" data-id="' + it.id + '"><div class="own-hd" data-h aria-label="Drag to reorder" role="img"><span class="own-gr">&#8942;&#8942;</span><img alt="" draggable="false" src="' + ftImg(it) + '"></div><div><input data-f="caption" maxlength="80" placeholder="Caption" value="' + ownEsc(it.caption) + '" aria-label="Caption"><input data-f="credit" maxlength="40" placeholder="Instagram username (links to IG)" value="' + ownEsc(it.credit) + '" aria-label="Credit"></div><div class="own-fb"><button type="button" class="own-btn p" data-fa="save">Save</button><button type="button" class="own-btn" data-fa="rep">Replace photo</button><button type="button" class="own-btn" data-fa="del">Delete</button></div></div>').join('') : '<div class="own-note">No featured photos yet.</div>';
-    const sl = $('ownFA'); if (sl) { sl.value = FT.cfg.anim; const f = (id) => document.activeElement === $(id), c = FT.cfg; if (!f('ownFS')) { $('ownFS').value = c.speed; $('ownFSv').textContent = c.speed; } if (!['ownFM', 'ownFB1', 'ownFB2', 'ownFB3', 'ownFAng'].some(f)) { $('ownFM').value = c.mode; $('ownFB1').value = c.bg1; $('ownFB2').value = c.bg2; $('ownFT').checked = !!c.bg3; if (c.bg3) $('ownFB3').value = c.bg3; $('ownFAng').value = c.ang; $('ownFG').hidden = c.mode === 'solid'; $('ownFB3').hidden = !c.bg3; $('ownFAngv').textContent = c.ang; } }
+    const sl = $('ownFA'); if (sl) { sl.value = FT.cfg.anim; const f = (id) => document.activeElement === $(id), c = FT.cfg; if (!f('ownFS')) { $('ownFS').value = c.speed; $('ownFSv').textContent = c.speed; } if (!['ownFM', 'ownFB1', 'ownFB2', 'ownFB3', 'ownFAng'].some(f)) { $('ownFM').value = c.mode; $('ownFB1').value = c.bg1; $('ownFB2').value = c.bg2; $('ownFT').checked = !!c.bg3; if (c.bg3) $('ownFB3').value = c.bg3; $('ownFAng').value = c.ang; $('ownFG').hidden = c.mode !== 'gradient'; $('ownFB3').hidden = !c.bg3; $('ownFAngv').textContent = c.ang; } }
+    dpOwnerBoard();
   }
+  let ownSel = '';
+  const ftSelAt = () => { const i = FT.items.findIndex((x) => x.id === ownSel); return i < 0 ? null : dpAt(i, FT.items.length); };
+  function dpSelSync() {
+    const a = ftSelAt(), r = $('ownFRot'), c = $('ownFSc'); if (!r) return; r.disabled = c.disabled = !a;
+    if (a) { r.value = a.rot; c.value = Math.round(a.sc * 100); $('ownFRotv').textContent = Math.round(a.rot); $('ownFScv').textContent = Math.round(a.sc * 100); }
+    $('ownFLay').textContent = FT.cfg.layout === 'free' ? 'Free layout (your positions)' : 'Auto layout (centered)';
+  }
+  function dpOwnerBoard() {
+    const b = $('ownBoard'); if (!b) return; dpBoardBg(b); const t = $('ownTrack'); t.setAttribute('data-anim', 'none'); dpFill(t, true);
+    const el = ownSel && t.querySelector('[data-id="' + ownSel + '"]'); if (el) el.classList.add('sel'); else ownSel = ''; dpSelSync();
+    const f = (id) => document.activeElement === $(id), c = FT.cfg;
+    if (!f('ownFD')) $('ownFD').value = c.desc || ''; if (!f('ownFTG')) $('ownFTG').value = c.tg || 'denblake123';
+  }
+  function ftMakeFree() { if (FT.cfg.layout === 'free') { const a = dpPts(FT.items.length); FT.items.forEach((it, i) => { if (!it.at) it.at = Object.assign({}, a.pts[i]); }); return; } const a = dpPts(FT.items.length); FT.items.forEach((it, i) => { it.at = Object.assign({}, a.pts[i]); }); FT.cfg.layout = 'free'; }
+  let posT = 0;
+  function ftPosSave() { clearTimeout(posT); posT = setTimeout(async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving arrangement...'; if (await ftOwn('/api/owner/featured/pos', { json: { items: FT.items.map((it) => ({ id: it.id, x: it.at.x, y: it.at.y, rot: it.at.rot, sc: it.at.sc })) } }, 'ownFMsg')) m.textContent = 'Arrangement saved. Live now.'; }, 400); }
   async function featOwnerLoad() { await featLoad(); featOwnerDraw(); }
   let ftRepId = '';
   function featOwnerWire() {
@@ -9839,12 +9883,28 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     $('ownFA').addEventListener('change', async (e) => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving animation...'; if (await ftOwn('/api/owner/featured/cfg', { json: { anim: e.target.value } }, 'ownFMsg')) m.textContent = 'Animation saved. Live now.'; });
     let bgT = 0;
     const bgNow = () => ({ mode: $('ownFM').value, bg1: $('ownFB1').value, bg2: $('ownFB2').value, bg3: $('ownFT').checked ? $('ownFB3').value : '', ang: +$('ownFAng').value });
-    const bgUI = () => { $('ownFG').hidden = $('ownFM').value === 'solid'; $('ownFB3').hidden = !$('ownFT').checked; $('ownFAngv').textContent = $('ownFAng').value; };
+    const bgUI = () => { $('ownFG').hidden = $('ownFM').value !== 'gradient'; $('ownFB3').hidden = !$('ownFT').checked; $('ownFAngv').textContent = $('ownFAng').value; };
     const bgSave = (c, now) => { if (c) { $('ownFM').value = c.mode; $('ownFB1').value = c.bg1; $('ownFB2').value = c.bg2 || $('ownFB2').value; $('ownFT').checked = !!c.bg3; if (c.bg3) $('ownFB3').value = c.bg3; $('ownFAng').value = c.ang; } bgUI(); const cur = bgNow(); FT.cfg = Object.assign({}, FT.cfg, cur); ftRender();
       clearTimeout(bgT); bgT = setTimeout(async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving background...'; if (await ftOwn('/api/owner/featured/cfg', { json: cur }, 'ownFMsg')) m.textContent = 'Background saved. Live now.'; }, now ? 0 : 600); };
     ['ownFM', 'ownFB1', 'ownFB2', 'ownFB3', 'ownFT', 'ownFAng'].forEach((id) => $(id).addEventListener('input', () => bgSave()));
     $('ownFPre').addEventListener('click', (e) => { const b = e.target.closest('[data-pre]'); if (!b) return; const a = b.getAttribute('data-pre').split('|'); bgSave({ mode: a[0], bg1: a[1], bg2: a[2], bg3: a[3], ang: +a[4] }, true); });
     let spT = 0; $('ownFS').addEventListener('input', () => { $('ownFSv').textContent = $('ownFS').value; FT.cfg = Object.assign({}, FT.cfg, { speed: +$('ownFS').value }); ftRender(); clearTimeout(spT); spT = setTimeout(async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving speed...'; if (await ftOwn('/api/owner/featured/cfg', { json: { speed: +$('ownFS').value } }, 'ownFMsg')) m.textContent = 'Speed saved. Live now.'; }, 500); });
+    $('ownFTx').addEventListener('click', async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Saving texts...'; if (await ftOwn('/api/owner/featured/cfg', { json: { desc: $('ownFD').value, tg: $('ownFTG').value } }, 'ownFMsg')) m.textContent = 'Texts saved. Live now.'; });
+    $('ownFBgAdd').addEventListener('click', () => $('ownFBgF').click());
+    $('ownFBgF').addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Uploading background...'; let b; try { b = await ftShrink(f); } catch (x) { m.textContent = 'Could not read that picture.'; m.className = 'own-msg err'; return; } if (await ftOwn('/api/owner/featured/bg', { method: 'PUT', body: b }, 'ownFMsg')) m.textContent = 'Background picture saved. Live now.'; });
+    $('ownFBgDel').addEventListener('click', async () => { if (!FT.cfg.bgv) return; const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Removing...'; if (await ftOwn('/api/owner/featured/bg/delete', {}, 'ownFMsg')) m.textContent = 'Picture removed.'; });
+    $('ownFAuto').addEventListener('click', async () => { const m = $('ownFMsg'); m.className = 'own-msg'; m.textContent = 'Back to automatic...'; if (await ftOwn('/api/owner/featured/pos', { json: { auto: true } }, 'ownFMsg')) m.textContent = 'Auto layout on. Live now.'; });
+    const ot = $('ownTrack'); let dg = null; const cl = (v) => Math.max(0, Math.min(100, v));
+    ot.addEventListener('pointerdown', (e) => {
+      const el = e.target.closest('.dp-it.ed'); if (!el) return; e.preventDefault(); ownSel = el.getAttribute('data-id'); ot.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); el.classList.add('sel'); ftMakeFree();
+      const it = FT.items.find((x) => x.id === ownSel), r = $('ownBoard').getBoundingClientRect(); if (!it || !it.at) return;
+      dg = { el, it, r, dx: (e.clientX - r.left) / r.width * 100 - it.at.x, dy: (e.clientY - r.top) / r.height * 100 - it.at.y, moved: false }; try { el.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } dpSelSync();
+    });
+    ot.addEventListener('pointermove', (e) => { if (!dg) return; const x = cl((e.clientX - dg.r.left) / dg.r.width * 100 - dg.dx), y = cl((e.clientY - dg.r.top) / dg.r.height * 100 - dg.dy); dg.it.at.x = x; dg.it.at.y = y; dg.moved = true; dg.el.style.left = x + '%'; dg.el.style.top = y + '%'; });
+    const dpUp = () => { if (!dg) return; const mv = dg.moved; dg = null; if (mv) ftPosSave(); };
+    ot.addEventListener('pointerup', dpUp); ot.addEventListener('pointercancel', dpUp);
+    const selApply = () => { const it = FT.items.find((x) => x.id === ownSel); if (!it) return; ftMakeFree(); it.at.rot = +$('ownFRot').value; it.at.sc = +$('ownFSc').value / 100; $('ownFRotv').textContent = $('ownFRot').value; $('ownFScv').textContent = $('ownFSc').value; const el = ot.querySelector('[data-id="' + ownSel + '"]'); if (el) { el.style.setProperty('--r', it.at.rot + 'deg'); el.style.setProperty('--s', it.at.sc); } ftPosSave(); };
+    $('ownFRot').addEventListener('input', selApply); $('ownFSc').addEventListener('input', selApply);
     let dr = null;                                                             // drag to reorder: works with mouse and touch (handle only, so the page still scrolls)
     $('ownFList').addEventListener('pointerdown', (e) => { const h = e.target.closest('[data-h]'); if (!h) return; dr = h.closest('.own-ft'); dr.classList.add('drag'); try { h.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } e.preventDefault(); });
     $('ownFList').addEventListener('pointermove', (e) => {
@@ -20010,34 +20070,49 @@ html.ev-on .ev-brand { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
 })();
 </script>
 <style id="feat-css">
+.dp-board.lt .dp-cap{color:#3b2f2f;text-shadow:0 1px 2px rgba(255,255,255,.85)}
+.dp-cap{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;width:150%;text-align:center;color:#fff;font-weight:700;font-size:clamp(.55rem,2.3vw,.8rem);line-height:1.15;text-shadow:0 1px 3px rgba(0,0,0,.7);pointer-events:none;overflow-wrap:anywhere}
+
 #whFeat[hidden]{display:none}
-.ft-wrap{margin:14px 0 0;padding:14px 10px 10px;border-radius:18px;border:2px solid #3b2f2f;background:var(--ftbg,linear-gradient(160deg,#eaf3fb,#f3e9d6))}
-#whFeat .wh-eyebrow,#whFeat .wh-h{text-align:center;margin-left:auto;margin-right:auto}
-.ft-track{--g:10px;--c:var(--cm,3);display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:var(--g);max-width:980px;margin:0 auto}
-.ft-track>.ft-card{flex:0 0 calc((100% - (var(--c) - 1) * var(--g)) / var(--c));max-width:calc((100% - (var(--c) - 1) * var(--g)) / var(--c))}
-@media (min-width:700px){.ft-track{--g:16px;--c:var(--cd,6)}}
-.ft-card{position:relative;margin:0;padding:6px 6px 8px;border:2px solid #3b2f2f;border-radius:12px;box-shadow:2px 4px 0 rgba(59,47,47,.2);background:#fffdf7;color:#3b2f2f;text-align:center;transform:rotate(var(--r,0deg));transition:transform .25s cubic-bezier(.3,1.6,.5,1),box-shadow .25s}
-.ft-card:nth-child(odd){--r:-1.6deg}.ft-card:nth-child(even){--r:1.6deg}
-@media (hover:hover) and (pointer:fine){.ft-card:hover{transform:rotate(0) translateY(-4px) scale(1.04);box-shadow:3px 8px 0 rgba(59,47,47,.22);z-index:2}}
+#whFeat .wh-eyebrow,#whFeat .wh-h,.dp-desc,.dp-weekw,.dp-lbl,.dp-getw{text-align:center;margin-left:auto;margin-right:auto}
+.dp-desc{max-width:34em;margin-top:6px;margin-bottom:10px;color:var(--ink-soft,#6b5b4b);line-height:1.5}
+.dp-weekw{margin:0 0 14px}.dp-week{display:inline-block;padding:5px 16px;border:1.5px solid rgba(59,47,47,.25);border-radius:99px;background:rgba(255,255,255,.7);font-weight:700;font-size:.85rem;color:#a24a73}
+.dp-board{position:relative;width:100%;max-width:860px;margin:0 auto;aspect-ratio:4/3;border-radius:22px;overflow:hidden;box-shadow:0 14px 34px rgba(59,47,47,.18);background:#eaf3fb;contain:layout paint}
+.dp-in{position:absolute;inset:0}
+.dp-it{position:absolute;transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(var(--s,1));transform-origin:50% 50%}
+.dp-it.ed{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.dp-it.ed .ft-pic{pointer-events:none}.dp-it.ed.sel{outline:3px dashed #2f6ea5;outline-offset:3px;z-index:3}
+.dp-card{background:#fff;padding:1.6%;border-radius:4px;box-shadow:0 6px 14px rgba(0,0,0,.28)}
 .ft-pic{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;font:inherit}
-.ft-pic:focus-visible,.ft-cr a:focus-visible{outline:3px solid #6aa7d8;outline-offset:2px}
-.ft-pic img{display:block;width:100%;height:auto;aspect-ratio:1/3;object-fit:cover;border-radius:6px;background:#fff}
-.ft-cap{display:block;margin-top:5px;font-weight:700;font-size:clamp(.62rem,2.4vw,.85rem);line-height:1.2;word-break:break-word}
-.ft-cr{display:block;margin-top:2px;font-size:clamp(.55rem,2vw,.78rem);overflow-wrap:anywhere}
-.ft-cr a{color:#2f6ea5;font-weight:700;text-decoration:none;border-bottom:1.5px dotted currentColor}
-@media (hover:hover) and (pointer:fine){.ft-cr a:hover{color:#c2566f}}
-.ft-track[data-anim]:not([data-anim=none]):not([data-anim=float]):not([data-anim=sway]) .ft-card{animation:var(--an,ftFade) calc(.8s * var(--sp,1)) cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0)*110ms * var(--sp,1))}
-.ft-track[data-anim=fade]{--an:ftFade}.ft-track[data-anim=slide]{--an:ftSlide}.ft-track[data-anim=zoom]{--an:ftZoom}.ft-track[data-anim=flip]{--an:ftFlip}.ft-track[data-anim=bounce]{--an:ftBounce}
-.ft-track[data-anim=float] .ft-card{animation:ftFloat calc(3.6s * var(--sp,1)) ease-in-out infinite;animation-delay:calc(var(--i,0)*350ms * var(--sp,1))}
-.ft-track[data-anim=sway] .ft-card{transform-origin:50% 0;animation:ftSway calc(3.4s * var(--sp,1)) ease-in-out infinite;animation-delay:calc(var(--i,0)*300ms * var(--sp,1))}
-@keyframes ftFade{from{opacity:0;transform:translateY(16px) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
-@keyframes ftSlide{from{opacity:0;transform:translateX(50px) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
-@keyframes ftZoom{from{opacity:0;transform:scale(.6) rotate(var(--r))}to{opacity:1;transform:rotate(var(--r))}}
-@keyframes ftFlip{from{opacity:0;transform:perspective(600px) rotateY(-80deg)}to{opacity:1;transform:rotate(var(--r))}}
-@keyframes ftBounce{0%{opacity:0;transform:translateY(-40px) scale(.7) rotate(var(--r))}60%{opacity:1;transform:translateY(8px) scale(1.04) rotate(var(--r))}80%{transform:translateY(-4px) rotate(var(--r))}100%{transform:rotate(var(--r))}}
-@keyframes ftFloat{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-8px) rotate(calc(var(--r) * -1))}}
-@keyframes ftSway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
-@media (prefers-reduced-motion:reduce){.ft-track .ft-card{animation:none!important}}
+.ft-pic:focus-visible,.dp-pill:focus-visible{outline:3px solid #6aa7d8;outline-offset:2px}
+.ft-pic img{display:block;width:100%;height:auto;background:#fff}
+.dp-lbl{margin:16px auto 8px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft,#6b5b4b)}
+.dp-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:860px;margin:0 auto}
+.dp-pi{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:46%}
+.dp-pc{font-size:.78rem;font-weight:700;text-align:center;overflow-wrap:anywhere}
+.dp-pill{display:inline-block;padding:7px 16px;border:1.5px solid rgba(59,47,47,.28);border-radius:99px;background:#fff;color:#3b2f2f;font-weight:700;font-size:.9rem;text-decoration:none;overflow-wrap:anywhere;text-align:center}
+a.dp-pill:hover{background:#fbeaf1}
+.dp-getw{margin:18px auto 4px}
+.dp-get{min-height:48px;padding:8px 28px;border:2px solid #3b2f2f;border-radius:14px;background:#b5568a;color:#fff;font:inherit;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:2px 4px 0 rgba(59,47,47,.25)}
+.dp-get:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(59,47,47,.25)}
+.dp-md{position:fixed;inset:0;z-index:10045;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,40,55,.6)}.dp-md[hidden]{display:none}
+.dp-mc{position:relative;width:min(480px,100%);max-height:100%;overflow:auto;padding:20px 18px 18px;border:2px solid #3b2f2f;border-radius:18px;background:#fffdf7;color:#3b2f2f;box-shadow:4px 6px 0 rgba(0,0,0,.25)}
+.dp-mc h3{margin:0 0 6px;font-size:1.3rem}.dp-mc p{margin:6px 0}.dp-mc ol{margin:8px 0 12px;padding-left:20px;line-height:1.5}
+.dp-x{position:absolute;top:8px;right:8px;min-width:40px;min-height:40px;border:2px solid #3b2f2f;border-radius:12px;background:#fff;font-size:1.1rem;cursor:pointer}
+.dp-ct{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;margin-top:8px;border:1.5px solid rgba(59,47,47,.2);border-radius:12px;background:#fff}
+.dp-ct b{display:block;font-size:.8rem;opacity:.7}.dp-ct span{flex:1 1 140px;min-width:0;overflow-wrap:anywhere;font-weight:700}
+.dp-ct a,.dp-ct button{min-height:40px;padding:4px 14px;border:2px solid #3b2f2f;border-radius:10px;background:#f3e9d6;color:#3b2f2f;font:inherit;font-weight:700;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center}
+.dp-in[data-anim]:not([data-anim=none]):not([data-anim=float]):not([data-anim=sway]) .dp-card{animation:var(--an,dpFade) calc(.8s * var(--sp,1)) cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0)*110ms * var(--sp,1))}
+.dp-in[data-anim=fade]{--an:dpFade}.dp-in[data-anim=slide]{--an:dpSlide}.dp-in[data-anim=zoom]{--an:dpZoom}.dp-in[data-anim=flip]{--an:dpFlip}.dp-in[data-anim=bounce]{--an:dpBounce}
+.dp-in[data-anim=float] .dp-card{animation:dpFloat calc(3.6s * var(--sp,1)) ease-in-out infinite;animation-delay:calc(var(--i,0)*350ms * var(--sp,1))}
+.dp-in[data-anim=sway] .dp-card{transform-origin:50% 0;animation:dpSway calc(3.4s * var(--sp,1)) ease-in-out infinite;animation-delay:calc(var(--i,0)*300ms * var(--sp,1))}
+@keyframes dpFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes dpSlide{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:none}}
+@keyframes dpZoom{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes dpFlip{from{opacity:0;transform:perspective(600px) rotateY(-80deg)}to{opacity:1;transform:none}}
+@keyframes dpBounce{0%{opacity:0;transform:translateY(-40px) scale(.7)}60%{opacity:1;transform:translateY(8px) scale(1.04)}80%{transform:translateY(-4px)}100%{transform:none}}
+@keyframes dpFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes dpSway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@media (prefers-reduced-motion:reduce){.dp-in .dp-card{animation:none!important}}
 .ft-lb{position:fixed;inset:0;z-index:10040;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));background:rgba(30,40,55,.82)}
 .ft-lb[hidden]{display:none}
 .ft-lb img{max-width:min(92vw,520px);max-height:76vh;object-fit:contain;border-radius:10px;background:#fff;border:2px solid #fff}

@@ -614,8 +614,11 @@ async function ownerRoute(req, env, url, path, user) {
    `featured` (created by itself the first time it is needed). Nothing here touches a cookie, a token, a session, the users table or anybody's Photo Archive. ---------- */
 const FEAT_MAX = 6, FEAT_BYTES = 6 * 1024 * 1024, FEAT_ID = /^[a-f0-9]{20}$/;
 let featReady = null;
-const ensureFeat = (env) => (featReady = featReady || env.DB.prepare('CREATE TABLE IF NOT EXISTS featured (id TEXT PRIMARY KEY, pos INTEGER, caption TEXT, credit TEXT, ctype TEXT, size INTEGER, v INTEGER, created INTEGER)').run().catch((e) => { featReady = null; throw e; }));
-const featList = async (env) => ((await env.DB.prepare('SELECT id, pos, caption, credit, v FROM featured ORDER BY pos ASC, created ASC').all()).results || []).map((r) => ({ id: r.id, caption: r.caption || '', credit: r.credit || '', v: r.v }));
+const ensureFeat = (env) => (featReady = featReady || (async () => {
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS featured (id TEXT PRIMARY KEY, pos INTEGER, caption TEXT, credit TEXT, ctype TEXT, size INTEGER, v INTEGER, created INTEGER)').run();
+  for (const col of ['x', 'y', 'rot', 'sc']) { try { await env.DB.prepare('ALTER TABLE featured ADD COLUMN ' + col + ' REAL').run(); } catch (e) { /* already there */ } }   // free-position board (null = automatic centred layout)
+})().catch((e) => { featReady = null; throw e; }));
+const featList = async (env) => ((await env.DB.prepare('SELECT id, pos, caption, credit, v, x, y, rot, sc FROM featured ORDER BY pos ASC, created ASC').all()).results || []).map((r) => ({ id: r.id, caption: r.caption || '', credit: r.credit || '', v: r.v, at: r.x == null || r.y == null ? null : { x: r.x, y: r.y, rot: r.rot || 0, sc: r.sc || 1 } }));
 function sniffImage(u) {
   if (u.length > 12 && u[0] === 0xFF && u[1] === 0xD8 && u[2] === 0xFF) return 'image/jpeg';
   if (u.length > 12 && u[0] === 0x89 && u[1] === 0x50 && u[2] === 0x4E && u[3] === 0x47) return 'image/png';
@@ -625,8 +628,9 @@ function sniffImage(u) {
 const featText = (v, n) => String(v == null ? '' : v).normalize('NFKC').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 const FEAT_ANIMS = ['none', 'fade', 'slide', 'zoom', 'flip', 'float', 'bounce', 'sway'], HEX = /^#[0-9a-fA-F]{6}$/;
 const featCfg = async (env) => {
-  const d = { anim: 'fade', speed: 5, mode: 'gradient', bg1: '#eaf3fb', bg2: '#f3e9d6', bg3: '', ang: 160 };
-  try { const o = await env.FILES.get('featured/_cfg'); if (o) { const c = JSON.parse(o.text ? await o.text() : '') || {}; if (FEAT_ANIMS.includes(c.anim)) d.anim = c.anim; if (HEX.test(c.bg1)) d.bg1 = c.bg1; if (HEX.test(c.bg2)) d.bg2 = c.bg2; if (c.bg3 === '' || HEX.test(c.bg3)) d.bg3 = c.bg3 || ''; if (c.mode === 'solid' || c.mode === 'gradient') d.mode = c.mode; const sp = Number(c.speed), an = Number(c.ang); if (sp >= 1 && sp <= 10) d.speed = Math.round(sp); if (an >= 0 && an <= 360) d.ang = Math.round(an); } } catch (e) { /* defaults */ }
+  const d = { anim: 'fade', speed: 5, mode: 'image', bg1: '#eaf3fb', bg2: '#f3e9d6', bg3: '', ang: 160, bgv: 0, desc: 'Every week we put a few favorite photostrips from the Den Collective community up on the board.', week: '', tg: 'denblake123', layout: 'auto' };
+  try { const o = await env.FILES.get('featured/_cfg'); if (o) { const c = JSON.parse(o.text ? await o.text() : '') || {}; if (FEAT_ANIMS.includes(c.anim)) d.anim = c.anim; if (HEX.test(c.bg1)) d.bg1 = c.bg1; if (HEX.test(c.bg2)) d.bg2 = c.bg2; if (c.bg3 === '' || HEX.test(c.bg3)) d.bg3 = c.bg3 || ''; if (['solid', 'gradient', 'image'].includes(c.mode)) d.mode = c.mode; const sp = Number(c.speed), an = Number(c.ang), bv = Number(c.bgv); if (sp >= 1 && sp <= 10) d.speed = Math.round(sp); if (an >= 0 && an <= 360) d.ang = Math.round(an); if (bv > 0) d.bgv = bv; if (typeof c.desc === 'string') d.desc = featText(c.desc, 200); if (typeof c.week === 'string') d.week = featText(c.week, 40); if (typeof c.tg === 'string' && /^[A-Za-z0-9_]{0,32}$/.test(c.tg)) d.tg = c.tg; if (c.layout === 'free' || c.layout === 'auto') d.layout = c.layout; if (['image/jpeg', 'image/png', 'image/webp'].includes(c.bgt)) d.bgt = c.bgt; } } catch (e) { /* defaults */ }
+  if (d.mode === 'image' && !d.bgv) d.mode = 'gradient';
   return d;
 };
 async function featuredPublic(req, env, url, path) {                // read-only, no login, no cookies
@@ -634,6 +638,7 @@ async function featuredPublic(req, env, url, path) {                // read-only
   try {
     await ensureFeat(env);
     if (path === '/api/featured') return json({ ok: true, items: await featList(env), cfg: await featCfg(env) }, 200, { 'Cache-Control': 'public, max-age=15' });
+    if (path === '/api/featured/bg') { const o = await env.FILES.get('featured/_bg'); if (!o) return fail(404, 'not_found'); const c = await featCfg(env); return new Response(o.body, { headers: { 'Content-Type': c.bgt || 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' } }); }
     const m = /^\/api\/featured\/img\/([a-f0-9]{20})$/.exec(path); if (!m) return fail(404, 'not_found');
     const row = await env.DB.prepare('SELECT ctype FROM featured WHERE id = ?').bind(m[1]).first(); if (!row) return fail(404, 'not_found');
     const o = await env.FILES.get('featured/' + m[1]); if (!o) return fail(404, 'not_found');
@@ -643,9 +648,9 @@ async function featuredPublic(req, env, url, path) {                // read-only
 async function featuredOwner(req, env, url, path) {                 // only reached after ownerOk(): 404 for everyone else
   try {
     await ensureFeat(env);
-    const read = async () => {
-      const len = Number(req.headers.get('Content-Length') || 0); if (len > FEAT_BYTES + 1024) return { err: fail(413, 'too_large') };
-      const u = new Uint8Array(await req.arrayBuffer()); if (u.length > FEAT_BYTES) return { err: fail(413, 'too_large') };
+    const read = async (lim) => {
+      lim = lim || FEAT_BYTES; const len = Number(req.headers.get('Content-Length') || 0); if (len > lim + 1024) return { err: fail(413, 'too_large') };
+      const u = new Uint8Array(await req.arrayBuffer()); if (u.length > lim) return { err: fail(413, 'too_large') };
       const type = sniffImage(u); if (!type) return { err: fail(415, 'bad_type') }; return { u, type };
     };
     if (path === '/api/owner/featured' && req.method === 'POST') {            // add a picture
@@ -660,10 +665,37 @@ async function featuredOwner(req, env, url, path) {                 // only reac
       if (b.anim != null) { if (!FEAT_ANIMS.includes(String(b.anim))) return fail(400, 'bad_anim'); c.anim = String(b.anim); }
       for (const k of ['bg1', 'bg2']) if (b[k] != null) { if (!HEX.test(String(b[k]))) return fail(400, 'bad_color'); c[k] = String(b[k]); }
       if (b.bg3 != null) { if (b.bg3 !== '' && !HEX.test(String(b.bg3))) return fail(400, 'bad_color'); c.bg3 = String(b.bg3); }
-      if (b.mode != null) { if (b.mode !== 'solid' && b.mode !== 'gradient') return fail(400, 'bad_mode'); c.mode = b.mode; }
+      if (b.mode != null) { if (!['solid', 'gradient', 'image'].includes(b.mode)) return fail(400, 'bad_mode'); c.mode = b.mode; }
       if (b.speed != null) { const v = Number(b.speed); if (!(v >= 1 && v <= 10)) return fail(400, 'bad_speed'); c.speed = Math.round(v); }
       if (b.ang != null) { const v = Number(b.ang); if (!(v >= 0 && v <= 360)) return fail(400, 'bad_angle'); c.ang = Math.round(v); }
+      if (b.mode != null && b.mode === 'image' && !c.bgv) return fail(400, 'no_image');
+      if (b.desc != null) c.desc = featText(b.desc, 200);
+      if (b.week != null) c.week = featText(b.week, 40);
+      if (b.tg != null) { const t = String(b.tg).replace(/^@/, '').trim(); if (!/^[A-Za-z0-9_]{0,32}$/.test(t)) return fail(400, 'bad_handle'); c.tg = t; }
+      if (b.layout != null) { if (b.layout !== 'free' && b.layout !== 'auto') return fail(400, 'bad_layout'); c.layout = b.layout; }
       await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } });
+      return json({ ok: true, items: await featList(env), cfg: c });
+    }
+    if (path === '/api/owner/featured/bg' && req.method === 'PUT') {          // custom board background picture
+      const r = await read(4 * 1024 * 1024); if (r.err) return r.err; const c = await featCfg(env);
+      await env.FILES.put('featured/_bg', r.u, { httpMetadata: { contentType: r.type } }); c.bgv = now(); c.bgt = r.type; c.mode = 'image';
+      await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } });
+      return json({ ok: true, items: await featList(env), cfg: c });
+    }
+    if (path === '/api/owner/featured/bg/delete' && req.method === 'POST') {
+      const c = await featCfg(env); try { await env.FILES.delete('featured/_bg'); } catch (e) { /* the cfg below is what hides it */ } c.bgv = 0; delete c.bgt; if (c.mode === 'image') c.mode = 'gradient';
+      await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } });
+      return json({ ok: true, items: await featList(env), cfg: c });
+    }
+    if (path === '/api/owner/featured/pos' && req.method === 'POST') {        // where each strip sits on the board (percent of the board) | auto: back to the centred layout
+      let b; try { b = await req.json(); } catch (e) { return fail(400, 'bad_request'); } b = b || {};
+      if (b.auto) { await env.DB.prepare('UPDATE featured SET x = NULL, y = NULL, rot = NULL, sc = NULL').run(); const c = await featCfg(env); c.layout = 'auto'; await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } }); return json({ ok: true, items: await featList(env), cfg: c }); }
+      const num = (v, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null; };
+      for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, FEAT_MAX)) {
+        if (!it || !FEAT_ID.test(String(it.id))) continue; const x = num(it.x, 0, 100), y = num(it.y, 0, 100), rot = num(it.rot == null ? 0 : it.rot, -45, 45), sc = num(it.sc == null ? 1 : it.sc, 0.5, 2); if (x == null || y == null || rot == null || sc == null) continue;
+        await env.DB.prepare('UPDATE featured SET x = ?, y = ?, rot = ?, sc = ? WHERE id = ?').bind(x, y, rot, sc, it.id).run();
+      }
+      const c = await featCfg(env); c.layout = 'free'; await env.FILES.put('featured/_cfg', JSON.stringify(c), { httpMetadata: { contentType: 'application/json' } });
       return json({ ok: true, items: await featList(env), cfg: c });
     }
     if (path === '/api/owner/featured/order' && req.method === 'POST') {      // new order
