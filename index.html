@@ -15372,7 +15372,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
 </script>
 <style id="den-nav-css">
 /* ===== Top navigation (Part 1): 5 small items, always spaced away from the content. Presentation only: no cookies, tokens, storage or requests. ===== */
-.den-nav{position:fixed;z-index:60;top:max(6px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));right:calc(max(8px,env(safe-area-inset-right,0px)) + 54px);display:flex;justify-content:center;pointer-events:none;transition:opacity .3s}
+.den-nav{position:absolute;z-index:60;top:max(6px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));right:calc(max(8px,env(safe-area-inset-right,0px)) + 54px);display:flex;justify-content:center;pointer-events:none;transition:opacity .3s}
 .den-nav[hidden]{display:none}
 .den-nav .nv{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:3px;max-width:100%;overflow-x:auto;scrollbar-width:none;background:rgba(251,247,238,.94);border:1.5px solid var(--ink);border-radius:999px;box-shadow:2px 3px 0 var(--blue)}
 .den-nav .nv::-webkit-scrollbar{display:none}
@@ -15383,9 +15383,9 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
 .den-nav .nv-s{display:none}
 @media (max-width:640px){.den-nav .nv-f{display:none}.den-nav .nv-s{display:inline}}
 body.intro-on .den-nav,body.booth-entering .den-nav,body.ev-live .den-nav{opacity:0;pointer-events:none}
-body.has-nav #screen-landing{padding-top:calc(var(--nav-h,46px) + 22px)}
+body.has-nav #screen-landing{padding-top:calc(var(--nav-h,46px) + 36px)}
 @media (max-width:400px){.den-nav button{font-size:.62rem;padding:7px 4px}.den-nav .nv{gap:0}}
-.scr-page{justify-content:flex-start;padding-top:calc(max(var(--nav-h,46px),env(safe-area-inset-top,0px) + 40px) + 22px)}
+.scr-page{justify-content:flex-start;padding-top:calc(max(var(--nav-h,46px),env(safe-area-inset-top,0px) + 40px) + 36px)}
 .pg-wrap{width:min(720px,100%);display:flex;flex-direction:column;gap:clamp(16px,3vw,26px)}.pg-wrap.pg-wide{width:min(1040px,100%)}
 .pg-head{display:flex;flex-direction:column;gap:6px;align-items:center}
 .pg-head .title{font-size:clamp(1.8rem,5.4vw,2.8rem)}
@@ -15452,6 +15452,23 @@ html body #screen-set #acctPanel #viewMain #dmSlotUser{order:22}
 html body #screen-set #acctPanel #viewMain .pp-menu{order:80;justify-self:center}
 html body #screen-set #acctPanel #viewMain #acLogout{order:99;margin-top:6px}
 html body #screen-set #acctPanel #viewMain .acct-msg{order:30}
+/* Part 3: lift + blur + centered Start on template cards */
+.tp-card{position:relative;transition:transform .2s ease,box-shadow .2s ease}
+.tp-card canvas{transition:filter .2s ease}
+.tp-go{position:absolute;left:50%;top:95px;transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;z-index:2;padding:10px 20px;min-height:44px;display:inline-flex;align-items:center;font-weight:800;font-size:.95rem;color:var(--ink);background:var(--paper,#fbf7ee);border:2px solid var(--ink);border-radius:999px;box-shadow:2px 3px 0 var(--blue);cursor:pointer;transition:opacity .2s ease,transform .2s ease;touch-action:manipulation}
+.tp-card.tp-wide .tp-go{top:60px}
+.tp-card[aria-pressed="true"]{transform:translateY(-6px)}
+.tp-card[aria-pressed="true"] canvas{filter:blur(2.5px)}
+.tp-card[aria-pressed="true"] .tp-go{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+@media (hover:hover) and (pointer:fine){.tp-card:hover{transform:translateY(-6px)}.tp-card:hover canvas{filter:blur(2.5px)}.tp-card:hover .tp-go{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}}
+.tp-go:focus-visible{outline:3px dashed var(--blue-deep,#2f82de);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.tp-card,.tp-card canvas,.tp-go{transition:none}}
+.tp-start{display:none!important}
+/* Part 3: Settings is a full-bleed page, no outer card */
+html body #screen-set{padding-left:0;padding-right:0;padding-bottom:0;min-height:100dvh;background:var(--paper,#fbf7ee)}
+html body #screen-set .pg-wrap{width:100%;max-width:none;padding-bottom:0}
+html body #screen-set .pg-head{padding:0 16px}
+html body #screen-set #acctPanel.acct-panel,html body #screen-set #acctPanel.acct-panel:not([hidden]){border:0;border-radius:0;box-shadow:none;background:transparent;width:100vw;max-width:100%;min-height:calc(100dvh - 150px);padding:8px max(16px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 </style>
 
 <script id="den-nav-js">
@@ -15515,7 +15532,7 @@ html body #screen-set #acctPanel #viewMain .acct-msg{order:30}
   function card(g, l, t, label, canvas, wide) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'tp-card' + (wide ? ' tp-wide' : ''); b.setAttribute('aria-pressed', 'false');
     b.setAttribute('data-l', l); b.setAttribute('data-t', t); b.setAttribute('data-n', label); b.setAttribute('data-g', g);
-    b.appendChild(canvas); var sp = document.createElement('span'); sp.textContent = label; b.appendChild(sp); return b;
+    b.appendChild(canvas); var go = document.createElement('span'); go.className = 'tp-go'; go.setAttribute('role', 'button'); go.textContent = 'Start'; b.appendChild(go); var sp = document.createElement('span'); sp.textContent = label; b.appendChild(sp); return b;
   }
   function buildTpl() {
     if (built || !A() || !A().tplList) return; built = true; var body = $('tplPgBody'); body.textContent = ''; var redo = [];
@@ -15532,7 +15549,7 @@ html body #screen-set #acctPanel #viewMain .acct-msg{order:30}
     });
     [700, 2200].forEach(function (ms) { setTimeout(function () { redo.forEach(function (r) { try { A().tplThumb(r[0], r[1], r[2]); } catch (e) { /* ignore */ } }); }, ms); });   // artwork that loads late
   }
-  $('tplPgBody').addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.tp-card'); if (c) pick(c); });
+  $('tplPgBody').addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.tp-card'); if (!c) return; pick(c); if (e.target.closest('.tp-go') && c.getAttribute('aria-pressed') === 'true') $('tpStartBtn').click(); });
   $('tpStartBtn').addEventListener('click', function () {
     if (!sel || !A()) return;
     if (window.DenBooth && DenBooth.active && DenBooth.active()) { toast('Leave your online booth first to use the Templates page.'); return; }
