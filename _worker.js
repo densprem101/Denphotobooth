@@ -546,13 +546,22 @@ async function ownerOk(env, user) {
   } catch (e) { return false; }
 }
 let visitsReady = null;
-const ensureVisits = (env) => (visitsReady = visitsReady || env.DB.prepare('CREATE TABLE IF NOT EXISTS den_visits (email TEXT PRIMARY KEY, name TEXT, first_ts INTEGER, last_ts INTEGER, n INTEGER)').run().catch((e) => { visitsReady = null; throw e; }));
-async function noteVisit(env, user) {                               // best effort, at most one write per person per 10 minutes, never blocks or changes a login
+const ensureVisits = (env) => (visitsReady = visitsReady || (async () => {
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS den_visits (email TEXT PRIMARY KEY, name TEXT, first_ts INTEGER, last_ts INTEGER, n INTEGER)').run();
+  for (const c of ['city TEXT', 'region TEXT', 'country TEXT', 'lat REAL', 'lon REAL']) { try { await env.DB.prepare('ALTER TABLE den_visits ADD COLUMN ' + c).run(); } catch (e) { /* column already there */ } }   // approximate place from Cloudflare's own request data
+})().catch((e) => { visitsReady = null; throw e; }));
+const cfText = (v, n) => String(v == null ? '' : v).normalize('NFKC').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+function cfPlace(req) {                                              // approximate only: city / region / country, and a position rounded to ~11 km. No browser GPS.
+  const cf = (req && req.cf) || {}, lat = Number(cf.latitude), lon = Number(cf.longitude), ok = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && cf.latitude !== '' && cf.longitude !== '';
+  return { city: cfText(cf.city, 60) || null, region: cfText(cf.region, 60) || null, country: /^[A-Za-z]{2}$/.test(cf.country || '') ? String(cf.country).toUpperCase() : null, lat: ok ? Math.round(lat * 10) / 10 : null, lon: ok ? Math.round(lon * 10) / 10 : null };
+}
+async function noteVisit(env, user, req) {                               // best effort, at most one write per person per 10 minutes, never blocks or changes a login
   try {
     const email = String(user.email || '').trim().toLowerCase(); if (!email || /@social\.den\.local$/.test(email)) return;
     await ensureVisits(env); const t = now();
-    await env.DB.prepare('INSERT INTO den_visits (email, name, first_ts, last_ts, n) VALUES (?, ?, ?, ?, 1) ON CONFLICT(email) DO UPDATE SET name = excluded.name, last_ts = excluded.last_ts, n = den_visits.n + 1 WHERE den_visits.last_ts < excluded.last_ts - 600000')
-      .bind(email, String(user.name || '').slice(0, 60), t, t).run();
+    const pl = cfPlace(req);
+    await env.DB.prepare('INSERT INTO den_visits (email, name, first_ts, last_ts, n, city, region, country, lat, lon) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET name = excluded.name, n = den_visits.n + (CASE WHEN den_visits.last_ts < excluded.last_ts - 600000 THEN 1 ELSE 0 END), last_ts = (CASE WHEN den_visits.last_ts < excluded.last_ts - 600000 THEN excluded.last_ts ELSE den_visits.last_ts END), city = COALESCE(excluded.city, den_visits.city), region = COALESCE(excluded.region, den_visits.region), country = COALESCE(excluded.country, den_visits.country), lat = COALESCE(excluded.lat, den_visits.lat), lon = COALESCE(excluded.lon, den_visits.lon) WHERE den_visits.last_ts < excluded.last_ts - 600000 OR (den_visits.country IS NULL AND excluded.country IS NOT NULL)')
+      .bind(email, String(user.name || '').slice(0, 60), t, t, pl.city, pl.region, pl.country, pl.lat, pl.lon).run();
   } catch (e) { /* never affects the request */ }
 }
 async function signingKey(env) {
@@ -575,7 +584,7 @@ async function ownerRoute(req, env, url, path, user) {
   if (req.method !== 'GET' && !sameSiteOk(req, url)) return fail(403, 'forbidden');
   if (path === '/api/owner/me' && req.method === 'GET') return json({ ok: true, owner: true, signing: !!(await signingKey(env)) });
   if (path === '/api/owner/visits' && req.method === 'GET') {
-    try { await ensureVisits(env); const r = await env.DB.prepare('SELECT email, name, first_ts, last_ts, n FROM den_visits ORDER BY last_ts DESC LIMIT 300').all(); return json({ ok: true, visits: (r.results || []).map((v) => ({ email: v.email, name: v.name || '', first: v.first_ts, last: v.last_ts, n: v.n })) }); }
+    try { await ensureVisits(env); await ensureAvatars(env); const r = await env.DB.prepare('SELECT v.email, v.name, v.first_ts, v.last_ts, v.n, v.city, v.region, v.country, v.lat, v.lon, a.v AS av, (SELECT u.picture FROM users u WHERE LOWER(u.email) = v.email LIMIT 1) AS pic FROM den_visits v LEFT JOIN den_avatars a ON a.email = v.email ORDER BY v.last_ts DESC LIMIT 300').all(); return json({ ok: true, visits: (r.results || []).map((v) => ({ email: v.email, name: v.name || '', first: v.first_ts, last: v.last_ts, n: v.n, city: v.city || '', region: v.region || '', country: v.country || '', lat: v.lat == null ? null : v.lat, lon: v.lon == null ? null : v.lon, av: v.av || 0, pic: /^https:\/\//.test(v.pic || '') ? String(v.pic).slice(0, 400) : '' })) }); }
     catch (e) { return fail(500, 'visits_failed'); }
   }
   if (path === '/api/owner/sign' && req.method === 'POST') {
@@ -603,6 +612,14 @@ async function ownerRoute(req, env, url, path, user) {
       const code = 'DENBACKUP.' + sg[0] + '.' + sg[1] + '.' + b64uEnc(gz); out = { code, link: url.origin + '/#restore=' + code, hours, days, exp: issued + hours * 36e5 };
     } else return fail(400, 'bad_kind');
     log('owner_sign', { kind }); return json({ ok: true, ...out });
+  }
+  if (path === '/api/owner/avatar' && req.method === 'GET') {                 // a visitor's picture, for the owner's map and list only
+    try {
+      await ensureAvatars(env); const e = String(url.searchParams.get('e') || '').trim().toLowerCase().slice(0, 200); if (!e) return fail(404, 'not_found');
+      const r = await env.DB.prepare('SELECT uid, ctype FROM den_avatars WHERE email = ?').bind(e).first(); if (!r) return fail(404, 'not_found');
+      const o = await env.FILES.get('avatars/' + r.uid); if (!o) return fail(404, 'not_found');
+      return new Response(o.body, { headers: { 'Content-Type': r.ctype || 'image/jpeg', 'Cache-Control': 'private, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' } });
+    } catch (e) { return fail(500, 'avatar_failed'); }
   }
   if (path.startsWith('/api/owner/featured')) return featuredOwner(req, env, url, path);
   return fail(404, 'not_found');
@@ -719,6 +736,37 @@ async function featuredOwner(req, env, url, path) {                 // only reac
   } catch (e) { return fail(500, 'featured_failed'); }
 }
 
+/* ---------- 6f. Profile pictures (Part 3) ----------
+   Each signed-in person can set a small square picture of themselves. It lives in R2 (avatars/<user id>) and is indexed in the D1 table `den_avatars`
+   (created by itself). Only that person can read or change it (GET /api/avatar/me, PUT /api/avatar); the verified owner can also read it for the
+   "Who visited" map (GET /api/owner/avatar). It never touches the users table, a cookie, a token or a session, and it is separate from every Photo Archive. ---------- */
+const AV_MAX = 256 * 1024;
+let avReady = null;
+const ensureAvatars = (env) => (avReady = avReady || env.DB.prepare('CREATE TABLE IF NOT EXISTS den_avatars (uid TEXT PRIMARY KEY, email TEXT, ctype TEXT, size INTEGER, v INTEGER)').run().catch((e) => { avReady = null; throw e; }));
+async function avatarRoute(req, env, url, path, user) {
+  if (!user) return fail(401, 'unauthorized');
+  try {
+    await ensureAvatars(env);
+    if (path === '/api/avatar/info' && req.method === 'GET') { const r = await env.DB.prepare('SELECT v FROM den_avatars WHERE uid = ?').bind(user.id).first(); return json({ ok: true, v: r ? r.v : 0 }, 200, { 'Cache-Control': 'no-store' }); }
+    if (path === '/api/avatar/me' && req.method === 'GET') {
+      const r = await env.DB.prepare('SELECT ctype FROM den_avatars WHERE uid = ?').bind(user.id).first(); if (!r) return fail(404, 'not_found');
+      const o = await env.FILES.get('avatars/' + user.id); if (!o) return fail(404, 'not_found');
+      return new Response(o.body, { headers: { 'Content-Type': r.ctype || 'image/jpeg', 'Cache-Control': 'private, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' } });
+    }
+    if (!sameSiteOk(req, url)) return fail(403, 'forbidden');
+    if (path === '/api/avatar' && req.method === 'PUT') {
+      const len = Number(req.headers.get('Content-Length') || 0); if (len > AV_MAX + 1024) return fail(413, 'too_large');
+      const u = new Uint8Array(await req.arrayBuffer()); if (u.length > AV_MAX) return fail(413, 'too_large');
+      const type = sniffImage(u); if (!type) return fail(415, 'bad_type'); const t = now();
+      await env.FILES.put('avatars/' + user.id, u, { httpMetadata: { contentType: type } });
+      await env.DB.prepare('INSERT INTO den_avatars (uid, email, ctype, size, v) VALUES (?, ?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET email = excluded.email, ctype = excluded.ctype, size = excluded.size, v = excluded.v').bind(user.id, String(user.email || '').trim().toLowerCase(), type, u.length, t).run();
+      return json({ ok: true, v: t });
+    }
+    if (path === '/api/avatar/delete' && req.method === 'POST') { try { await env.FILES.delete('avatars/' + user.id); } catch (e) { /* the row below is what hides it */ } await env.DB.prepare('DELETE FROM den_avatars WHERE uid = ?').bind(user.id).run(); return json({ ok: true, v: 0 }); }
+    return fail(404, 'not_found');
+  } catch (e) { return fail(500, 'avatar_failed'); }
+}
+
 /* ---------- 7. router ---------- */
 export default {
   async fetch(req, env) {
@@ -740,8 +788,9 @@ export default {
       if (path.startsWith('/api/booth/')) return boothRoute(req, env, url, path);   // before the login lookup on purpose: guests need no account, and this never touches a session
       if (path.startsWith('/api/share/')) return shareRoute(req, env, url, path);   // guest QR links: before the login lookup on purpose (guests need no account; this never touches a session)
       const user = await currentUser(req, env);
+      if (path === '/api/avatar' || path.startsWith('/api/avatar/')) return avatarRoute(req, env, url, path, user);   // a person's own picture only
       if (path.startsWith('/api/owner/')) return ownerRoute(req, env, url, path, user);   // 404 for everyone except the verified owner
-      if (path === '/api/me' && req.method === 'GET' && user) await noteVisit(env, user);   // names + emails + times only, for the owner's "Who visited"
+      if (path === '/api/me' && req.method === 'GET' && user) await noteVisit(env, user, req);   // names + emails + times only, for the owner's "Who visited"
       if (path === '/api/me' && req.method === 'GET' && user && user.sessExp && user.sessExp - Math.floor(now() / 1000) < (SESSION_DAYS - 1) * 86400) {   // sliding session: re-issue the same login with a fresh full lifetime (at most about once a day)
         const fresh = await signToken(env, { u: user.id, e: user.sessEpoch }, SESSION_DAYS * 86400);
         return json({ ok: true, user: { id: user.id, email: user.email, name: user.name, picture: user.picture || '', hasPassword: !!user.password_hash }, bytes: user.bytes || 0 }, 200, { 'Set-Cookie': cookie('den_session', fresh, { maxAge: SESSION_DAYS * 86400 }) });
