@@ -2776,6 +2776,73 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   </section>
 
   <!-- ====================== 2. SETUP ====================== -->
+  <section class="screen scr-page" id="screen-ldr" data-screen="ldr" hidden aria-labelledby="ldrTitle">
+    <div class="pg-wrap">
+      <header class="pg-head"><h1 class="title" id="ldrTitle">Long-distance booth</h1><p class="lede">Take photo-booth strips together, even when you are oceans apart.</p></header>
+      <div class="ldr-hero">
+        <svg class="ldr-art" viewBox="0 0 320 150" role="img" aria-label="Two little photo booths linked by a dotted line with a heart" shape-rendering="crispEdges">
+          <rect x="0" y="0" width="320" height="150" fill="none"/>
+          <g><rect x="22" y="30" width="78" height="104" fill="#f6ecd6" stroke="#3a3f4a" stroke-width="4"/><rect x="22" y="22" width="78" height="12" fill="#8ec9ee" stroke="#3a3f4a" stroke-width="4"/><rect x="34" y="46" width="54" height="40" fill="#cfe8f8" stroke="#3a3f4a" stroke-width="4"/><rect x="34" y="92" width="54" height="42" fill="#8ec9ee" stroke="#3a3f4a" stroke-width="4"/><rect x="52" y="58" width="18" height="18" fill="#3a3f4a"/></g>
+          <g><rect x="220" y="30" width="78" height="104" fill="#f6ecd6" stroke="#3a3f4a" stroke-width="4"/><rect x="220" y="22" width="78" height="12" fill="#8ec9ee" stroke="#3a3f4a" stroke-width="4"/><rect x="232" y="46" width="54" height="40" fill="#cfe8f8" stroke="#3a3f4a" stroke-width="4"/><rect x="232" y="92" width="54" height="42" fill="#8ec9ee" stroke="#3a3f4a" stroke-width="4"/><rect x="250" y="58" width="18" height="18" fill="#3a3f4a"/></g>
+          <path d="M108 70 Q160 18 212 70" fill="none" stroke="#3a3f4a" stroke-width="4" stroke-dasharray="4 8"/>
+          <path d="M160 58 l-8-8 a7 7 0 0 1 8-10 a7 7 0 0 1 8 10 z" fill="#e8637a" stroke="#3a3f4a" stroke-width="3"/>
+        </svg>
+        <div class="ldr-cta"><button type="button" class="btn btn--primary ldr-big" id="ldrCreate">Create a booth</button><button type="button" class="btn ldr-big" id="ldrJoin">Join a booth</button></div>
+        <p class="ldr-note">Got an invite link? Just open it, type your name and you are in. No code needed.</p>
+      </div>
+      <section class="ldr-sec" aria-labelledby="ldrHow">
+        <h2 id="ldrHow">How it works</h2>
+        <ol class="ldr-steps">
+          <li><b>Create and name yourself</b><span>Tap <em>Create a booth</em> and type your name or nickname. Your booth is called &ldquo;&lt;Name&gt;&rsquo;s Party&rdquo;. No layout yet.</span></li>
+          <li><b>Send the invite</b><span>In the lobby you see your own live camera. Tap <em>Copy</em> and send the link (or the short code) to your person.</span></li>
+          <li><b>Wait for them to join</b><span>When they arrive, their live camera shows up next to yours with both names, and the <em>Next</em> button lights up.</span></li>
+          <li><b>Pick a layout together</b><span>Tap <em>Next</em>. Choose a strip, including the wide 3&times;6 long-distance strip. A mini video call stays on screen while you choose.</span></li>
+          <li><b>Smile at the same time</b><span>The countdown is shared, so you both shoot together. Each of you fills your own half of every frame.</span></li>
+          <li><b>Edit and keep it</b><span>Pick a template, add stickers and words, and watch each other&rsquo;s changes live. Then save your strip.</span></li>
+        </ol>
+        <p class="ldr-join-how"><b>Joining someone else?</b> Tap <em>Join a booth</em>, type your name, then the booth code. If you opened their invite link, the code is already filled in, so you only add your name.</p>
+      </section>
+      <section class="ldr-sec" aria-labelledby="ldrFor">
+        <h2 id="ldrFor">Who is it for?</h2>
+        <ul class="ldr-for">
+          <li><i aria-hidden="true">&#128158;</i><b>Couples in a long-distance relationship</b><span>Date-night strips even when you are in different time zones.</span></li>
+          <li><i aria-hidden="true">&#129489;&#8205;&#129309;&#8205;&#129489;</i><b>Long-distance best friends</b><span>Matching strips for the friends who moved away.</span></li>
+          <li><i aria-hidden="true">&#127968;</i><b>Family and relatives abroad</b><span>Parents, siblings and cousins together in one frame again.</span></li>
+          <li><i aria-hidden="true">&#127775;</i><b>Online hangout buddies</b><span>Game night, study calls and virtual parties with a keepsake at the end.</span></li>
+        </ul>
+      </section>
+      <section class="ldr-sec ldr-tips" aria-labelledby="ldrTips">
+        <h2 id="ldrTips">Good to know</h2>
+        <ul><li>Allow the camera and microphone when your browser asks.</li><li>A steady Wi-Fi or mobile connection keeps the video smooth.</li><li>Your video and voice go straight to your person. Nothing is recorded on a server.</li></ul>
+      </section>
+    </div>
+  </section>
+
+  <section class="screen scr-page" id="screen-tpl" data-screen="tpl" hidden aria-labelledby="tplPgTitle">
+    <div class="pg-wrap pg-wide">
+      <header class="pg-head"><h1 class="title" id="tplPgTitle">Templates &amp; layouts</h1><p class="lede">Tap a template, then press Start. You go straight to the camera, and your template is waiting on the editing page.</p></header>
+      <div id="tplPgBody" class="tp-body" aria-live="polite"></div>
+    </div>
+    <div class="tp-start" id="tpStart" hidden role="region" aria-label="Start with this template"><span class="tp-start-txt" id="tpStartTxt"></span><button type="button" class="btn btn--primary" id="tpStartBtn">Start</button></div>
+  </section>
+
+  <section class="screen scr-page" id="screen-spot" data-screen="spot" hidden aria-labelledby="spTitle">
+    <div class="pg-wrap">
+      <header class="pg-head"><h1 class="title" id="spTitle">Spotlight</h1><p class="lede">Fresh photo strips picked from the Den Collective community.</p></header>
+      <div id="spBoardHost"></div>
+      <div class="sp-empty" id="spEmpty" hidden><b>No picks on the board yet.</b><span>Check back soon, or send us your strip below.</span><button type="button" class="dp-get" id="spGet2">Get featured</button></div>
+      <section class="sp-guide" id="spGuide" tabindex="-1" aria-labelledby="spGuideH"><h2 id="spGuideH">How to get featured</h2><div id="spGuideBody"></div></section>
+    </div>
+  </section>
+
+  <section class="screen scr-page" id="screen-set" data-screen="set" hidden aria-labelledby="setTitle">
+    <div class="pg-wrap">
+      <header class="pg-head"><h1 class="title" id="setTitle">Settings</h1><p class="lede">Your profile, photos, templates and account, all in one place.</p></header>
+      <div id="setHost"></div>
+    </div>
+  </section>
+
+
   <section class="screen" id="screen-setup" data-screen="setup" hidden aria-labelledby="setupTitle">
     <button class="btn btn--quiet setup-back" type="button" id="setupBack" aria-label="Back">
       <svg class="icon" aria-hidden="true"><use href="#i-arrow-left" /></svg><span data-text="back"></span>
@@ -4074,8 +4141,9 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (window.ResizeObserver) new ResizeObserver(fitPreview).observe(root.querySelector('.di-pv'));
     document.addEventListener('visibilitychange', function () { if (document.hidden) stopCam(); else if (root && !root.hidden && S.src === 'camera') startCam(); });
   }
-  function open() {
-    if (!root) build(); root.hidden = false; document.body.style.overflow = 'hidden'; setSrc(S.src === 'camera' ? 'camera' : 'upload'); thumbs(); repaint();
+  function open(pi) {
+    if (pi != null && pi >= 0 && pi < PRESETS.length) { S.p = +pi; save(); }
+    if (!root) build(); try { root.querySelectorAll('[data-p]').forEach(function (n) { n.setAttribute('aria-pressed', n.getAttribute('data-p') === String(S.p)); }); } catch (e) { /* ignore */ } root.hidden = false; document.body.style.overflow = 'hidden'; setSrc(S.src === 'camera' ? 'camera' : 'upload'); thumbs(); repaint();
     try { if (document.fonts && document.fonts.load) document.fonts.load('600 40px "Dancing Script"').then(repaint, function () {}); } catch (e) { /* ignore */ }
     try { root.querySelector('[data-a=back]').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
@@ -4087,7 +4155,14 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     var c = document.querySelector('input[name="layout"]:checked'); if (!c || c.value !== 'idcard') return;
     e.preventDefault(); e.stopImmediatePropagation(); open();
   }, true);
-  window.DenIdCard = { card: card, open: open, close: close, _code128: code128 };
+  function presets() { return PRESETS.map(function (p, i) { return { i: i, name: p.name }; }); }
+  function preview(i) {                                                        // a small picture of one design (no photos, nothing stored)
+    var c = document.createElement('canvas'), k = { o: S.o, p: S.p, imgs: S.imgs, sel: S.sel, pv: S.pv, box: S.box };
+    S.o = 'landscape'; S.p = i; S.imgs = [null, null, null, null]; S.pv = true; S.box = null;
+    try { draw(c, .4); } catch (e) { /* ignore */ }
+    S.o = k.o; S.p = k.p; S.imgs = k.imgs; S.sel = k.sel; S.pv = k.pv; S.box = k.box; return c;
+  }
+  window.DenIdCard = { card: card, open: open, close: close, presets: presets, preview: preview, _code128: code128 };
 })();
 </script>
 <script>
@@ -4512,7 +4587,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
   /* ======================================================================
      3. SCREEN ROUTER
      ====================================================================== */
-  const SCREENS = ['landing', 'setup', 'capture', 'edit', 'result'];
+  const SCREENS = ['landing', 'ldr', 'tpl', 'spot', 'set', 'setup', 'capture', 'edit', 'result'];
   function show(name) {
     state.screen = name;
     document.body.dataset.screen = name;
@@ -4600,7 +4675,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
       state.layoutId = layoutId;
       state.photos = new Array(currentLayout().count).fill(null);
     }
-    state.delay = delay;
+    state.delay = delay; state.tplFlow = null;
     try { if (window.DenBooth) DenBooth.setupDone(); } catch (err) { /* optional */ }
     enterCapture();
   }
@@ -8016,6 +8091,10 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     const el = currentLayout(), sar = (el.widthIn || CONFIG.strip.widthIn) / (el.heightIn || CONFIG.strip.heightIn);
     $('screen-edit').classList.toggle('is-compact', sar > 0.45); $('screen-edit').style.setProperty('--sar', sar.toFixed(4));   // UI-only enlargement
     filterTemplatesForLayout();
+    if (state.tplFlow) {                                                                      // came from the Templates page: that template is the starting one on the editing page
+      const tf = state.tplFlow; state.tplFlow = null;
+      if (tf.layout === state.layoutId && CONFIG.templates.some((t) => t.id === tf.tpl) && templateFits(getTemplate(tf.tpl), currentLayout())) { state.bundleApplied = currentLayout().id; onTemplateChange(tf.tpl); }
+    }
     syncEditControls();
     renderTemplateMinis();
     schedulePreview();
@@ -8552,7 +8631,7 @@ html.reduce-motion #screen-landing.is-entering .booth-layer--curtain, html.reduc
     if (state.finalUrl) URL.revokeObjectURL(state.finalUrl);
     state.finalUrl = null; state.finalBlob = null; state.sheetBlob = null; state.bundle = null; state.bundleApplied = null; state.galleryPromise = null; state.galleryUrl = ''; state.assetsPromise = null; state.shareBufP = null; state.sessionId = ''; if (state.peer) { try { state.peer.destroy(); } catch (e) { /* ignore */ } state.peer = null; }
     state.liveBlob = null; state.liveExt = ''; state.livePromise = null; state.liveToken++;
-    state.layoutId = CONFIG.defaults.layout; state.delay = CONFIG.defaults.delay;
+    state.layoutId = CONFIG.defaults.layout; state.delay = CONFIG.defaults.delay; state.tplFlow = null;
     state.hQuotes = null; state.photos = []; state.photoSeq = 0; state.activeSlot = -1; state.retakeSlot = -1; state.previewing = false; state.previewIdx = -1; if (typeof closePhotoPreview === 'function') closePhotoPreview(); state.running = false;
     state.filterId = CONFIG.defaults.filter; state.lensId = null; applyCamFilter(); state.tplTints = {}; state.stripColor = (CONFIG.templates.find((t) => t.id === CONFIG.defaults.template) || {}).bg || CONFIG.strip.defaultColor;
     state.showDate = CONFIG.defaults.showDate; state.customText = '';
@@ -9919,7 +9998,7 @@ const OWN_GEO = {"w":2000.0,"h":1357.8,"top":2.9487002390741552,"d":"M1340 726l6
   function ftRender() {
     const sec = $('whFeat'), tr = $('ftTrack'); if (!sec || !tr) return;
     const n = FT.items.length, c = FT.cfg; sec.hidden = !n;
-    $('dpDesc').textContent = c.desc || '';
+    $('dpDesc').textContent = c.desc || ''; try { dpGuideDraw(); } catch (e) { /* ignore */ }
     dpBoardBg($('dpBoard')); tr.setAttribute('data-anim', c.anim); tr.style.setProperty('--sp', Math.max(0.5, Math.min(5, 5 / (c.speed || 5))).toFixed(2)); dpFill(tr, false);
     const order = FT.items.map((it, i) => i); if (c.layout === 'free') order.sort((a, b) => dpAt(a, n).x - dpAt(b, n).x);
     $('dpPills').innerHTML = order.map((i) => { const it = FT.items[i], h = IGH.exec(it.credit || '');
@@ -9928,14 +10007,27 @@ const OWN_GEO = {"w":2000.0,"h":1357.8,"top":2.9487002390741552,"d":"M1340 726l6
   }
   const ftCopy = async (t, btn) => { try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (x) { /* ignore */ } a.remove(); } if (btn) { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1400); } };
   function dpGetOpen() {
+    if (dpGuideDraw()) { const g = $('spGuide'); if (g) { try { g.scrollIntoView({ behavior: 'smooth', block: 'start' }); g.focus({ preventScroll: true }); } catch (e) { /* ignore */ } return; } }
     let m = $('dpMd'); if (!m) { m = document.createElement('div'); m.className = 'dp-md'; m.id = 'dpMd'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); document.body.appendChild(m);
       m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-x]')) { m.hidden = true; return; } const cp = e.target.closest('[data-cp]'); if (cp) ftCopy(cp.getAttribute('data-cp'), cp); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') m.hidden = true; }); }
     const tg = FT.cfg.tg || 'denblake123', row = (k, v, href, label) => '<div class="dp-ct"><div style="flex:1 1 140px;min-width:0"><b>' + k + '</b><span>' + ownEsc(v) + '</span></div><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + '</a><button type="button" data-cp="' + ownEsc(v) + '">Copy</button></div>';
-    m.innerHTML = '<div class="dp-mc"><button type="button" class="dp-x" data-x aria-label="Close">&times;</button><h3>Get featured on DEN PICKS</h3><p>Every week we pick a few photostrips from the Den Collective community.</p><ol><li>Make your strip in Den Collective and save it.</li><li>Send it to us by Instagram, Telegram or email, and tell us your Instagram username.</li><li>If we pick it, your strip goes on the board with a link to your Instagram.</li></ol>'
-      + row('Instagram', '@' + IG_USER, 'https://www.instagram.com/' + IG_USER + '/', 'Open') + (tg ? row('Telegram', '@' + tg, 'https://t.me/' + encodeURIComponent(tg), 'Open') : '') + row('Email', MAIL_TO, 'mailto:' + MAIL_TO + '?subject=' + encodeURIComponent('DEN PICKS: my Den Collective strip'), 'Write') + '</div>';
+    m.innerHTML = '<div class="dp-mc"><button type="button" class="dp-x" data-x aria-label="Close">&times;</button><h3>Get featured on DEN PICKS</h3>' + dpGuideHtml(row, tg) + '</div>';
     m.hidden = false;
   }
+  /* the full how-to-get-featured guide (shown at the bottom of the Spotlight page; the popup above is only a fallback) */
+  function dpGuideHtml(row, tg) {
+    return '<p>Every week we pick a few photo strips from the Den Collective community and show them on the DEN PICKS board.</p>'
+      + '<ol><li>Make your strip in Den Collective, then save it to your phone or computer.</li><li>Send the picture to the owner by <b>Instagram</b>, <b>Telegram</b> or <b>email</b> (pick whichever is easiest) and tell us your Instagram username.</li><li>If we pick your strip, it goes on the board with your <b>@username</b> and a short caption, and the name links to your Instagram.</li></ol>'
+      + row('Instagram', '@' + IG_USER, 'https://www.instagram.com/' + IG_USER + '/', 'Open') + (tg ? row('Telegram', '@' + tg, 'https://t.me/' + encodeURIComponent(tg), 'Open') : '') + row('Email', MAIL_TO, 'mailto:' + MAIL_TO + '?subject=' + encodeURIComponent('DEN PICKS: my Den Collective strip'), 'Write')
+      + '<p class="sp-fine">Only send strips you are happy to have shown publicly. Featured strips are chosen by the owner and can be removed on request.</p>';
+  }
+  function dpGuideDraw() {
+    const g = $('spGuideBody'); if (!g) return false; const tg = FT.cfg.tg || 'denblake123';
+    const row = (k, v, href, label) => '<div class="dp-ct"><div style="flex:1 1 140px;min-width:0"><b>' + k + '</b><span>' + ownEsc(v) + '</span></div><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + '</a><button type="button" data-cp="' + ownEsc(v) + '">Copy</button></div>';
+    g.innerHTML = dpGuideHtml(row, tg); return true;
+  }
+  document.addEventListener('click', (e) => { const cp = e.target.closest && e.target.closest('#spGuideBody [data-cp]'); if (cp) ftCopy(cp.getAttribute('data-cp'), cp); });
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#dpGet')) dpGetOpen(); });
   async function featLoad() {
     try { const r = await fetch('/api/featured', { credentials: 'omit', cache: 'no-store' }), j = await r.json(); if (r.ok && j.ok) { FT.items = j.items || []; FT.cfg = j.cfg || FT.cfg; ftRender(); } } catch (e) { /* the gallery just stays as it is */ }
@@ -10408,7 +10500,7 @@ const OWN_GEO = {"w":2000.0,"h":1357.8,"top":2.9487002390741552,"d":"M1340 726l6
     $('menuTplNew').addEventListener('click', () => { if (!acct.user) return; openTemplates(); });
     document.addEventListener('pointerdown', (e) => {          /* tap outside closes the menu */
       if ($('acctPanel').hidden && $('chatPanel').hidden) return;
-      if (e.target.closest('#acctPanel, #chatPanel, #profileBtn, .viewer, .modal, #layoutDlg, .toast')) return;
+      if (e.target.closest('#acctPanel, #chatPanel, #profileBtn, #screen-set, #denNav, .viewer, .modal, #layoutDlg, .toast')) return;
       if (!$('layoutDlg').hidden || !$('tipModal').hidden) return;
       if (!$('acctPanel').hidden) setAcctOpen(false); if (!$('chatPanel').hidden) setChat(false);
     });
@@ -10433,7 +10525,7 @@ const OWN_GEO = {"w":2000.0,"h":1357.8,"top":2.9487002390741552,"d":"M1340 726l6
     $('photosBack').addEventListener('click', () => closePhotos());
     $('acLogout').addEventListener('click', logout);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !$('acctPanel').hidden && $('tipModal').hidden) { setAcctOpen(false); $('profileBtn').focus(); }
+      if (e.key === 'Escape' && !$('acctPanel').hidden && $('tipModal').hidden && document.body.dataset.screen !== 'set') { setAcctOpen(false); $('profileBtn').focus(); }
     });
     showAuth('fLogin');
     renderAcct();
@@ -11755,7 +11847,20 @@ const OWN_GEO = {"w":2000.0,"h":1357.8,"top":2.9487002390741552,"d":"M1340 726l6
     p.canvas = canvas; p.wide = canvas; if (!(p.frames && p.frames.__duo)) p.frames = null; p.online = true; p.raws = raws || []; p.mineLeft = mineLeft !== false; filterCache.clear(); hirCover.clear(); p.thumb = t.toDataURL('image/jpeg', 0.82);
     renderSlots(); updateCaptureUI();
   }
-  window.__denApp = { state, show, toast, runSequence, enterEdit, swapPhoto, redo, schedulePreview, syncStickerUI };   // the only door between the booth and the online-booth module
+  /* Templates page (Part 1 of the new navigation): list a layout's templates, draw a thumbnail for any layout, and start the camera with a template waiting for the editing page. */
+  function tplList(lid) { const L = CONFIG.layouts.find((l) => l.id === lid); if (!L) return []; return tplOrder(CONFIG.templates).filter((t) => templateFits(t, L)).map((t) => ({ id: t.id, label: t.label })); }
+  function tplThumb(c, lid, tid) {
+    const keep = state.layoutId;
+    try { state.layoutId = lid; const t = getTemplate(tid); renderStrip(c, 48, { tpl: t.id, color: t.bg || CONFIG.strip.defaultColor, frame: t.frame || null, bg: null, photos: [], stickers: [], strokes: [], showDate: false, text: '' }); }
+    finally { state.layoutId = keep; }
+    if (c.width && c.height) c.style.setProperty('--ar', (c.width / c.height).toFixed(4));
+  }
+  function tplStart(lid, tid) {
+    const L = CONFIG.layouts.find((l) => l.id === lid); if (!L || !CONFIG.templates.some((t) => t.id === tid)) return false;
+    state.layoutId = L.id; state.photos = new Array(currentLayout().count).fill(null); state.tplFlow = { layout: L.id, tpl: tid };
+    syncSetupForm(); enterCapture(); return true;
+  }
+  window.__denApp = { state, show, toast, runSequence, enterEdit, swapPhoto, redo, schedulePreview, syncStickerUI, tplList, tplThumb, tplStart };   // the only door between the booth and the online-booth module
 
   function initExtras() {
     const step = (fn) => { try { fn(); } catch (e) { try { console.error('[Den start-up]', e); } catch (e2) { /* ignore */ } } };
@@ -14632,6 +14737,34 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
 .db-mini-call.is-min{width:64px}.db-mini-call.is-min #dbMiniSelf,.db-mini-call.is-min .db-tag{display:none}
 @media (max-width:520px){.db-mini-call{width:104px;top:128px}}
 </style>
+<style id="den-lobby-css">
+/* Online booth lobby (Part 50): name first, live camera lobby with a gated Next, then layout. Visual only; no cookies, tokens or storage are touched. */
+.db-lobby{position:fixed;inset:0;z-index:2900;overflow:auto;display:grid;place-items:center;padding:14px;background:var(--paper,#fbf7ee);color:var(--ink)}
+.db-lobby[hidden]{display:none}
+.db-lb-card{position:relative;width:min(560px,100%);display:flex;flex-direction:column;gap:12px;padding:20px 16px 16px;box-sizing:border-box;text-align:center}
+.db-lb-card h2{margin:0;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:1.9rem;line-height:1.05;overflow-wrap:anywhere;padding:0 40px}
+.db-lb-card .db-x{position:absolute;top:6px;right:4px}
+.db-lb-vids{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.db-lb-v{position:relative;margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.db-lb-v .db-lb-fr{position:relative;aspect-ratio:3/4;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#2a2d33;box-shadow:3px 4px 0 var(--blue)}
+.db-lb-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#2a2d33}
+#dbLbSelf{transform:scaleX(-1)}
+.db-lb-off{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:8px;color:#f3efe6;font-size:.85rem;font-weight:600;text-align:center;background:rgba(30,33,40,.78)}
+.db-lb-v.is-off .db-lb-off{display:flex}
+.db-lb-v figcaption{font-weight:700;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.db-lb-v figcaption small{display:block;font-weight:600;opacity:.6;font-size:.72rem}
+.db-lb-code{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:.85rem;font-weight:600}
+.db-lb-code strong{font-family:var(--font-type);font-size:1.35rem;letter-spacing:.16em}
+.db-lb-ctl{display:flex;justify-content:center;gap:10px}
+.db-lb-ctl .db-mini{min-height:40px;padding:4px 14px;font-size:.82rem}
+.db-lb-ctl .db-mini.is-off{background:#f1d6d2;border-style:dashed}
+#dbLbNext{min-height:50px;justify-content:center;transition:opacity .2s,filter .2s}
+#dbLbNext:disabled{opacity:.38;filter:grayscale(.7);cursor:not-allowed;box-shadow:none}
+#dbLbNext:not(:disabled){animation:dbLbPop .5s ease-out}
+@keyframes dbLbPop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#dbLbNext:not(:disabled){animation:none}}
+@media (max-width:420px){.db-lb-card h2{font-size:1.55rem}}
+</style>
 <script id="den-booth">
 /* Long-distance booth. Two devices talk straight to each other (WebRTC): video, voice, chat and the shared countdown never pass through a server.
    The Cloudflare Worker only relays the short "here is how to reach me" notes (D1 table), so there is nothing to host and nothing extra to set up.
@@ -14666,8 +14799,9 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     d.innerHTML = '<div class="db-card"><button type="button" class="db-x" id="dbMX" aria-label="Close">&times;</button><h2 id="dbMTitle">Join a Booth</h2>' +
       '<p class="db-lede">Take photos together, even when you are far apart.</p>' +
       '<div class="db-choices" id="dbChoices"><button type="button" class="btn btn--primary" id="dbCreate">Create</button><button type="button" class="btn" id="dbJoin">Join</button></div>' +
+      '<form id="dbNameForm" hidden autocomplete="off"><label class="db-lab"><span id="dbNmLab">Your name or nickname</span><input id="dbNm" maxlength="16" placeholder="e.g. Den" autocomplete="nickname" autocapitalize="words" spellcheck="false"></label>' +
+      '<p class="db-lede" id="dbNmHint" hidden></p><div class="db-row"><button type="button" class="btn" id="dbNmBack">Back</button><button type="submit" class="btn btn--primary" id="dbNmGo">Next</button></div></form>' +
       '<form id="dbJoinForm" hidden autocomplete="off"><label class="db-lab">Booth ID code<input id="dbCode" maxlength="8" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. DP3567" inputmode="text"></label>' +
-      '<label class="db-lab">Your name (optional)<input id="dbName" maxlength="16" placeholder="you"></label>' +
       '<div class="db-row"><button type="button" class="btn" id="dbBackBtn">Back</button><button type="submit" class="btn btn--primary" id="dbGo">Join booth</button></div></form>' +
       '<p class="db-msg" id="dbMsg" role="status" aria-live="polite"></p>' +
       '<p class="db-fine">Your camera and voice go straight to your person. Allow the camera and microphone when asked.</p></div>';
@@ -14696,15 +14830,38 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     document.body.appendChild(mini); dragMini(mini);
     $('dbMiniMin').addEventListener('click', function (e) { e.stopPropagation(); mini.classList.toggle('is-min'); $('dbMiniMin').textContent = mini.classList.contains('is-min') ? '+' : '\u2212'; });
 
+    var lb = document.createElement('div'); lb.id = 'dbLobby'; lb.className = 'db-lobby'; lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-labelledby', 'dbLbTitle');
+    lb.innerHTML = '<div class="db-lb-card"><button type="button" class="db-x" id="dbLbX" aria-label="Leave booth">&times;</button><h2 id="dbLbTitle">Your party</h2>' +
+      '<p class="db-lede" id="dbLbSub" role="status" aria-live="polite"></p>' +
+      '<div class="db-lb-vids"><figure class="db-lb-v" id="dbLbMeBox"><div class="db-lb-fr"><video id="dbLbSelf" playsinline autoplay muted></video><span class="db-lb-off" id="dbLbSelfOff">Camera is off</span></div><figcaption id="dbLbMe"></figcaption></figure>' +
+      '<figure class="db-lb-v is-off" id="dbLbThemBox"><div class="db-lb-fr"><video id="dbLbRemote" playsinline autoplay muted></video><span class="db-lb-off" id="dbLbWait">Waiting for your person...</span></div><figcaption id="dbLbThem"></figcaption></figure></div>' +
+      '<div class="db-lb-code"><span>Invite code</span><strong id="dbLbCode"></strong><button type="button" class="db-mini" id="dbLbCopy" aria-label="Copy invite link">Copy</button></div>' +
+      '<div class="db-lb-ctl"><button type="button" class="db-mini" id="dbLbMic" aria-pressed="false">Mic on</button><button type="button" class="db-mini" id="dbLbCam" aria-pressed="false">Camera on</button></div>' +
+      '<button type="button" class="btn btn--primary" id="dbLbNext" disabled>Next</button><p class="db-msg" id="dbLbMsg" role="status" aria-live="polite"></p></div>';
+    document.body.appendChild(lb);
+    $('dbLbX').addEventListener('click', function () { if (confirm('Leave this booth?')) leave(true); });
+    $('dbLbCopy').addEventListener('click', function () { copyInvite($('dbLbCopy')); });
+    $('dbLbMic').addEventListener('click', toggleMute);
+    $('dbLbCam').addEventListener('click', toggleCam);
+    $('dbLbNext').addEventListener('click', lobbyNext);
+    var lcx = $('layoutChoices'); if (lcx) lcx.addEventListener('click', layoutPicked);
     $('dbMX').addEventListener('click', closeModal);
     d.addEventListener('click', function (e) { if (e.target === d) closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !d.hidden) closeModal(); });
-    $('dbCreate').addEventListener('click', doCreate);
-    $('dbJoin').addEventListener('click', function () { $('dbChoices').hidden = true; $('dbJoinForm').hidden = false; $('dbName').value = myName(); setMsg(''); setTimeout(function () { $('dbCode').focus(); }, 30); });
-    $('dbBackBtn').addEventListener('click', function () { $('dbChoices').hidden = false; $('dbJoinForm').hidden = true; setMsg(''); });
+    $('dbCreate').addEventListener('click', function () { nameStep('create'); });
+    $('dbJoin').addEventListener('click', function () { nameStep('join'); });
+    $('dbNmBack').addEventListener('click', function () { if (mode === 'link') { closeModal(); return; } showChoices(); });
+    $('dbBackBtn').addEventListener('click', function () { nameStep('join'); });
+    $('dbNameForm').addEventListener('submit', function (e) {
+      e.preventDefault(); var n = $('dbNm').value.trim().slice(0, 16);
+      if (!n) { setMsg('Please enter your name or nickname first.', true); $('dbNm').focus(); return; }
+      ls.set('den.booth.name', n); setMsg('');
+      if (mode === 'create') doCreate(); else if (mode === 'link') doJoin(linkCode); else { $('dbNameForm').hidden = true; $('dbJoinForm').hidden = false; setTimeout(function () { $('dbCode').focus(); }, 30); }
+    });
     $('dbCode').addEventListener('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-    $('dbJoinForm').addEventListener('submit', function (e) { e.preventDefault(); var n = $('dbName').value.trim(); if (n) ls.set('den.booth.name', n.slice(0, 16)); doJoin($('dbCode').value); });
-    $('dbCopy').addEventListener('click', copyInvite);
+    $('dbJoinForm').addEventListener('submit', function (e) { e.preventDefault(); doJoin($('dbCode').value); });
+    $('dbNm').addEventListener('input', function () { if (mode === 'create') $('dbNmHint').textContent = 'Your booth will be called \u201C' + partyOf(this.value || 'Name') + '\u201D.'; });
+    $('dbCopy').addEventListener('click', function () { copyInvite(); });
     $('dbMute').addEventListener('click', toggleMute);
     $('dbSplit').addEventListener('click', function () { setSplit(!R.split, true); });
     watchView(); watchEdit();
@@ -14720,15 +14877,24 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   function openModal(joinCode) {
     buildUI(); var d = $('dbModal'); d.hidden = false; document.body.classList.add('db-modal-open');
     if (R) { setMsg('You are already in booth ' + R.code + '. Leave it first to start another.'); $('dbChoices').hidden = true; $('dbJoinForm').hidden = true; return; }
-    $('dbChoices').hidden = !!joinCode; $('dbJoinForm').hidden = !joinCode; setMsg('');
-    if (joinCode) { $('dbCode').value = joinCode; $('dbName').value = myName(); }
-    setTimeout(function () { var f = joinCode ? $('dbCode') : $('dbCreate'); if (f) f.focus(); }, 30);
+    setMsg(''); if (joinCode) { linkCode = joinCode; nameStep('link'); } else showChoices();
   }
+  var mode = '', linkCode = '';
+  function showChoices() { mode = ''; $('dbChoices').hidden = false; $('dbNameForm').hidden = true; $('dbJoinForm').hidden = true; $('dbMTitle').textContent = 'Join a Booth'; setMsg(''); setTimeout(function () { var f = $('dbCreate'); if (f) f.focus(); }, 30); }
+  function nameStep(m) {                                    // 1) name or nickname first (Create, Join and invite links all start here)
+    mode = m; $('dbChoices').hidden = true; $('dbJoinForm').hidden = true; $('dbNameForm').hidden = false; setMsg('');
+    $('dbMTitle').textContent = m === 'create' ? 'Create a Booth' : 'Join a Booth';
+    $('dbNmGo').textContent = m === 'create' ? 'Create booth' : m === 'link' ? 'Join booth' : 'Next';
+    $('dbNmLab').textContent = 'Your name or nickname';
+    var h = $('dbNmHint'); h.hidden = m === 'join'; h.textContent = m === 'create' ? 'Your booth will be called \u201C' + partyOf(myName() || 'Name') + '\u201D.' : 'You were invited with code ' + linkCode + '. Just add your name to join.';
+    $('dbNm').value = myName(); setTimeout(function () { $('dbNm').focus(); }, 30);
+  }
+  function partyOf(n) { n = String(n || '').trim().slice(0, 16); return (n || 'My') + '\u2019s Party'; }
   function closeModal() { var d = $('dbModal'); if (d) d.hidden = true; document.body.classList.remove('db-modal-open'); }
 
   /* ---------- rooms ---------- */
   var ERR = { no_room: 'That booth was not found. Check the code, or ask for a new invite.', full: 'That booth already has two people.', too_many: 'Too many tries. Please wait a little and try again.', not_configured: 'Online booths need the cloud set up on this site.', bad_code: 'Enter the booth code.' };
-  function busy(on) { ['dbCreate', 'dbJoin', 'dbGo'].forEach(function (i) { var b = $(i); if (b) b.disabled = !!on; }); }
+  function busy(on) { ['dbCreate', 'dbJoin', 'dbGo', 'dbNmGo'].forEach(function (i) { var b = $(i); if (b) b.disabled = !!on; }); }
   function doCreate() {
     setMsg('Opening your booth...'); busy(true);
     api('/api/booth/create', {}).then(function (j) {
@@ -14753,14 +14919,14 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     document.body.classList.add('db-on'); document.body.classList.toggle('db-host', R.role === 'host'); document.body.classList.toggle('db-guest', R.role === 'guest');
     $('dbLog').textContent = ''; paintBar(); setStatus(R.role === 'host' ? 'Waiting for your person to join...' : 'Joined. Connecting...');
     if (R.role === 'guest') sigSend({ t: 'hi' });
-    startMic().then(function () { poll(); });
-    if (A) A.show('setup'); document.body.classList.toggle('db-landing', false);
-    if (R.role === 'host') toast('Booth ' + R.code + ' is open. Share the invite.');
+    R.lobby = true; R.camOff = false; showLobby();
+    startMic().then(function () { poll(); startLobbyCam(); });
+    document.body.classList.toggle('db-landing', false);
   }
   function leave(tell) {
     if (!R) return; var r = R;
     if (tell) { try { api('/api/booth/leave', { code: r.code, token: r.token }); } catch (e) { /* ignore */ } try { dcSend({ t: 'bye' }); } catch (e) { /* ignore */ } }
-    teardown(); R = null; muted = false; applyMute(); ss.set('den.booth.sess', null);
+    teardown(); R = null; muted = false; applyMute(); ss.set('den.booth.sess', null); var lbx = $('dbLobby'); if (lbx) lbx.hidden = true; document.body.classList.remove('db-lobby-on');
     var vfx = vfEl(); if (vfx) vfx.classList.remove('db-split', 'db-first', 'db-second');
     document.body.classList.remove('db-on', 'db-host', 'db-guest', 'db-connected'); var b = $('dbBar'); if (b) b.hidden = true; var t = $('dbTile'); if (t) t.hidden = true; chatOpen(false);
     var cb = $('dbChatBtn'); if (cb) cb.hidden = true;
@@ -14770,6 +14936,8 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     try { if (R.dc) R.dc.close(); } catch (e) { /* ignore */ } try { if (R.pc) R.pc.close(); } catch (e) { /* ignore */ }
     R.pc = R.dc = null; R.vSender = R.aSender = null;
     if (R.mic) { R.mic.getTracks().forEach(function (t) { t.stop(); }); R.mic = null; }
+    if (R.lobbyCam) { R.lobbyCam.getTracks().forEach(function (t) { t.stop(); }); R.lobbyCam = null; }
+    ['dbLbSelf', 'dbLbRemote'].forEach(function (i) { var e = $(i); if (e) e.srcObject = null; });
     var v = $('dbRemote'); if (v) v.srcObject = null; var au = $('dbAudio'); if (au) au.srcObject = null; stopCallCam();
     ['dbMiniRemote', 'dbMiniSelf'].forEach(function (i) { var e = $(i); if (e) e.srcObject = null; });
   }
@@ -14799,6 +14967,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     pc.ontrack = function (e) { if (R && R.pc === pc) { R.remote.addTrack(e.track); var vv = $('dbRemote'); if (vv) { vv.srcObject = R.remote; vv.play().catch(function () { /* resumes on the next tap */ }); } var aa = $('dbAudio'); if (aa) { aa.srcObject = R.remote; aa.play().catch(function () { /* resumes on the next tap */ }); } var mr = $('dbMiniRemote'); if (mr) { mr.srcObject = R.remote; mr.play().catch(function () { /* ignore */ }); } if (e.track.kind === 'video') { $('dbWait').hidden = true; e.track.onunmute = function () { $('dbWait').hidden = true; }; } } };
     pc.onicecandidate = function (e) { if (!R || R.pc !== pc) return; if (e.candidate) R.ice.push(e.candidate.toJSON()); clearTimeout(R.iceT); R.iceT = setTimeout(flushIce, e.candidate ? 250 : 0); };
     pc.ondatachannel = function (e) { bindDc(e.channel); };
+    var lrv = $('dbLbRemote'); if (lrv) lrv.srcObject = R.remote; pc.addEventListener('track', function () { var q = $('dbLbRemote'); if (q && R && R.pc === pc) { q.srcObject = R.remote; q.play().catch(function () { /* resumes on tap */ }); } });
     pc.onconnectionstatechange = function () {
       if (!R || R.pc !== pc) return; var s = pc.connectionState;
       if (s === 'connected') setConn('up'); else if (s === 'connecting') setConn('wait'); else if (s === 'disconnected') { setConn('slow'); clearTimeout(R.downT); R.downT = setTimeout(function () { if (R && R.pc === pc && pc.connectionState !== 'connected') recover(); }, 7000); } else if (s === 'failed') recover();
@@ -14823,6 +14992,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   }
   function attachCam() {
     if (!R || !R.vSender) return; var s = A && A.state && A.state.stream, t = s && s.getVideoTracks()[0];
+    if (!(t && t.readyState === 'live')) { var lcs = R.lobbyCam || R.callCam; t = lcs && lcs.getVideoTracks()[0]; }
     R.vSender.replaceTrack(t && t.readyState === 'live' ? t : null).then(function () {
       try { var p = R.vSender.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}]; p.encodings[0].maxBitrate = 900000; return R.vSender.setParameters(p); } catch (e) { return null; }
     }).catch(function () { /* optional */ });
@@ -14850,7 +15020,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   function dcSend(o) { try { if (dcOpen()) R.dc.send(JSON.stringify(o)); } catch (e) { /* ignore */ } }
   function bindDc(dc) {
     R.dc = dc; var r = R;
-    dc.onopen = function () { if (R !== r) return; setConn('up'); dcSend({ t: 'hello', name: myName() }); if (r.role === 'host') { syncSetup(); sendView(true); } };
+    dc.onopen = function () { if (R !== r) return; setConn('up'); dcSend({ t: 'hello', name: myName(), party: r.role === 'host' ? partyOf(myName()) : '' }); if (r.role === 'host') { if (!r.lobby) dcSend({ t: 'next' }); syncSetup(); sendView(true); } };
     dc.onclose = function () { if (R === r && r.dc === dc) setConn('slow'); };
     dc.onmessage = function (e) { try { onMsg(JSON.parse(e.data)); } catch (x) { /* ignore */ } };
   }
@@ -14858,7 +15028,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     if (!R) return; R.conn = s; var up = s === 'up';
     document.body.classList.toggle('db-connected', up);
     var dot = $('dbDot'); if (dot) dot.className = 'db-dot ' + (up ? 'is-up' : s === 'slow' ? 'is-slow' : '');
-    setStatus(up ? (R.role === 'host' ? 'Connected. Pick a layout, then Proceed.' : 'Connected. Your host starts the booth.') : s === 'slow' ? 'Connection is unstable. Reconnecting...' : (R.role === 'host' ? 'Waiting for your person to join...' : 'Connecting...'));
+    setStatus(up ? (R.role === 'host' ? 'Connected. Tap a layout to start.' : 'Connected. Your host starts the booth.') : s === 'slow' ? 'Connection is unstable. Reconnecting...' : (R.role === 'host' ? 'Waiting for your person to join...' : 'Connecting...'));
     if (up && !R.autoSplit) { R.autoSplit = true; setSplit(true, false); }          // first connection: both people are shown big and side by side, the same way the photo is made (the Split / Whole button still toggles it)
     var t = $('dbTile'); if (t) t.hidden = !up; paintBar(); screenChanged();
   }
@@ -14868,7 +15038,8 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   function onMsg(m) {
     if (!R) return;
     switch (m.t) {
-      case 'hello': case 'name': R.peerName = String(m.name || '').slice(0, 16); paintBar(); break;
+      case 'hello': case 'name': R.peerName = String(m.name || '').slice(0, 16); if (m.party && R.role === 'guest') R.party = String(m.party).slice(0, 30); paintBar(); break;
+      case 'next': if (R.role === 'guest' && R.lobby) goSetup(false); break;
       case 'chat': chatLine(label(false), String(m.text || '').slice(0, 300), 'them'); if (!$('dbChat').classList.contains('open')) { R.unread++; paintBadge(); } break;
       case 'bye': toast('Your person left the booth.'); R.peerName = ''; setConn('wait'); try { R.dc && R.dc.close(); R.pc && R.pc.close(); } catch (e) { /* ignore */ } R.pc = R.dc = null; if (R.role === 'guest') { toast('The host left. The booth is closed.'); leave(false); } else poll(); break;
       case 'setup': if (R.role === 'guest') followSetup(m); break;
@@ -15012,11 +15183,11 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   function ensureSelf() {
     if (!R || !R.vSender) return; var me = $('dbMiniSelf'), app = A && A.state.stream, at = app && app.getVideoTracks()[0];
     if (at && at.readyState === 'live') { if (me && me.srcObject !== app) { me.srcObject = app; me.play().catch(function () { /* ignore */ }); } return; }
-    var cur = R.callCam && R.callCam.getVideoTracks()[0]; if (cur && cur.readyState === 'live') { if (R.vSender.track !== cur) R.vSender.replaceTrack(cur).catch(function () { /* ignore */ }); return; }
+    var cur = R.callCam && R.callCam.getVideoTracks()[0]; if (cur && cur.readyState === 'live') { if (me && me.srcObject !== R.callCam) { me.srcObject = R.callCam; me.play().catch(function () { /* ignore */ }); } if (R.vSender.track !== cur) R.vSender.replaceTrack(cur).catch(function () { /* ignore */ }); return; }
     if (R.callBusy || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return; R.callBusy = true; var r = R;
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } }, audio: false }).then(function (s) {
       r.callBusy = false; var sc = document.body.dataset.screen;
-      if (R !== r || !(sc === 'edit' || sc === 'result')) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+      if (R !== r || !(sc === 'setup' || sc === 'edit' || sc === 'result')) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
       r.callCam = s; var m = $('dbMiniSelf'); if (m) { m.srcObject = s; m.play().catch(function () { /* ignore */ }); } if (r.vSender) r.vSender.replaceTrack(s.getVideoTracks()[0]).catch(function () { /* ignore */ });
     }).catch(function () { r.callBusy = false; });
   }
@@ -15055,7 +15226,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     }, true);
     ed.addEventListener('input', function (e) { if (!R || R.applying || !dcOpen()) return; var t = e.target; if (t && t.tagName === 'INPUT' && t.type === 'text' && t.id) dcSend({ t: 'ed', k: 'text', id: t.id, value: t.value }); }, true);
     ['printBtn', 'editBack'].forEach(function (id) { var b = $(id); if (b) b.addEventListener('click', function () { if (R && !R.applying && dcOpen()) dcSend({ t: 'nav', to: id === 'printBtn' ? 'result' : 'capture' }); }, true); });
-    setInterval(function () { var sc = document.body.dataset.screen; if (R && R.conn === 'up' && (sc === 'edit' || sc === 'result')) ensureSelf(); }, 1500);
+    setInterval(function () { var sc = document.body.dataset.screen; if (R && R.conn === 'up' && (sc === 'setup' || sc === 'edit' || sc === 'result')) ensureSelf(); }, 1500);
     setInterval(function () {
       if (!R || !dcOpen() || !A || A.state.screen !== 'edit') return; var fp = artFp(); if (fp === R.artFp) return;
       R.artFp = fp; clearTimeout(R.artT); R.artT = setTimeout(function () { bigSend('art', { stickers: A.state.stickers, strokes: A.state.strokes }); }, 250);
@@ -15075,7 +15246,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     var b = $('dbBar'); if (!b) return; if (!R) { b.hidden = true; return; }
     $('dbCodeTxt').textContent = R.code; $('dbMe').textContent = label(true); $('dbThem').textContent = label(false); $('dbThem').classList.toggle('is-set', !!R.peerName);
     var tg = $('dbTag'); if (tg) tg.textContent = label(false);
-    applyMute(); screenChanged();
+    applyMute(); screenChanged(); lobbyPaint();
   }
   function editName() {
     var chip = $('dbMe'), i = document.createElement('input'); i.className = 'db-chip-in'; i.maxLength = 16; i.value = myName(); i.placeholder = 'your name'; chip.replaceWith(i); i.focus(); i.select();
@@ -15083,8 +15254,8 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') done(true); else if (e.key === 'Escape') done(false); });
     i.addEventListener('blur', function () { done(true); });
   }
-  function copyInvite() {
-    if (!R) return; var url = inviteUrl(), btn = $('dbCopy'), ok = function () { btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = 'Invite'; }, 1600); };
+  function copyInvite(btn0) {
+    if (!R) return; var url = inviteUrl(), btn = (btn0 && btn0.tagName === 'BUTTON') ? btn0 : $('dbCopy'), old = btn.getAttribute('data-t') || btn.textContent, ok = function () { btn.setAttribute('data-t', old); btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = old; }, 1600); };
     var text = 'Join my Den Collective photo booth: ' + url + '  (code ' + R.code + ')';
     var fall = function () { if (navigator.share) navigator.share({ title: 'Den Collective booth', text: text, url: url }).catch(function () { /* cancelled */ }); else window.prompt('Copy this invite link:', url); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fall); else fall();
@@ -15096,6 +15267,7 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
     var b = $('dbMute'); if (!b) return;
     b.classList.toggle('is-off', muted); b.setAttribute('aria-pressed', String(muted)); b.setAttribute('aria-label', muted ? 'Unmute microphone' : 'Mute microphone'); b.title = muted ? 'Muted: tap to unmute' : 'Tap to mute';
     var tx = $('dbMuteTxt'); if (tx) tx.textContent = muted ? 'Muted' : 'Mic';
+    var lm = $('dbLbMic'); if (lm) { lm.classList.toggle('is-off', muted); lm.setAttribute('aria-pressed', String(muted)); lm.textContent = muted ? 'Mic off' : 'Mic on'; }
   }
   function toggleMute() {
     var has = R && R.mic && R.mic.getAudioTracks()[0];
@@ -15110,16 +15282,67 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
   }
   function paintBadge() { var b = $('dbBadge'); if (!b) return; b.hidden = !(R && R.unread); b.textContent = R ? R.unread : ''; }
   function chatOpen(on) { var c = $('dbChat'); if (!c) return; c.classList.toggle('open', !!on); document.body.classList.toggle('db-chat-open', !!on); if (on && R) { R.unread = 0; paintBadge(); setTimeout(function () { try { $('dbMsgIn').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50); } }
+  /* ---------- the lobby: own live camera, invite code, mic / camera, and a Next that waits for the guest ---------- */
+  function showLobby() {
+    buildUI(); var lb = $('dbLobby'); if (!lb || !R) return; closeModal(); lb.hidden = false; document.body.classList.add('db-lobby-on');
+    $('dbLbCode').textContent = R.code; var gst = R.role === 'guest'; $('dbLbMsg').textContent = '';
+    lobbyPaint();
+  }
+  function hideLobby() { var lb = $('dbLobby'); if (lb) lb.hidden = true; document.body.classList.remove('db-lobby-on'); }
+  function lobbyPaint() {
+    var lb = $('dbLobby'); if (!lb || lb.hidden || !R) return; var up = R.conn === 'up' && dcOpen(), host = R.role === 'host';
+    $('dbLbTitle').textContent = host ? partyOf(myName()) : (R.party || 'Joining the party...');
+    $('dbLbMe').innerHTML = esc(myName() || 'You') + '<small>You</small>';
+    $('dbLbThem').innerHTML = R.peerName ? esc(R.peerName) + '<small>' + (host ? 'Guest' : 'Host') + '</small>' : '<small>' + (host ? 'Waiting for your guest...' : 'Connecting...') + '</small>';
+    var box = $('dbLbThemBox'); box.classList.toggle('is-off', !up); $('dbLbWait').textContent = host ? 'Waiting for your person to join...' : 'Connecting to your host...';
+    var nx = $('dbLbNext'); nx.disabled = !(host && up);
+    $('dbLbSub').textContent = host ? (up ? (R.peerName || 'Your person') + ' is here! Tap Next to pick a layout.' : 'Share the invite code. Next lights up when your person joins.') : (up ? 'Waiting for ' + (R.peerName || 'the host') + ' to tap Next.' : 'Connecting to the party...');
+    var cam = $('dbLbCam'); if (cam) { cam.classList.toggle('is-off', !!R.camOff); cam.textContent = R.camOff ? 'Camera off' : 'Camera on'; cam.setAttribute('aria-pressed', String(!!R.camOff)); }
+    var sv = $('dbLbSelf'), cs = R.lobbyCam || R.callCam; if (sv && cs && sv.srcObject !== cs) { sv.srcObject = cs; sv.play().catch(function () { /* ignore */ }); }
+    $('dbLbMeBox').classList.toggle('is-off', !!R.camOff || !cs);
+    var ws = $('dbLbSelfOff'); if (ws) ws.textContent = R.camOff ? 'Camera is off' : (R.camErr ? 'Allow the camera to show yourself' : 'Starting camera...');
+  }
+  function startLobbyCam() {
+    if (!R || R.lobbyCam || R.camBusy || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { if (R && !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { R.camErr = true; lobbyPaint(); } return; }
+    R.camBusy = true; var r = R;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false }).then(function (s) {
+      r.camBusy = false;
+      if (R !== r || !r.lobby) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+      r.lobbyCam = s; r.camErr = false; var t = s.getVideoTracks()[0]; if (t) t.enabled = !r.camOff; if (r.vSender) attachCam(); lobbyPaint();
+    }).catch(function () { r.camBusy = false; r.camErr = true; toast('Camera is off. Allow the camera to show yourself.'); lobbyPaint(); });
+  }
+  function toggleCam() {
+    if (!R) return; var cs = R.lobbyCam || R.callCam;
+    if (!cs) { R.camOff = false; R.camErr = false; startLobbyCam(); return; }
+    R.camOff = !R.camOff; var t = cs.getVideoTracks()[0]; if (t) t.enabled = !R.camOff; lobbyPaint();
+  }
+  function lobbyNext() {
+    if (!R || R.role !== 'host' || !R.lobby) return;
+    if (!dcOpen()) { $('dbLbMsg').textContent = 'Your person is not connected yet.'; return; }
+    goSetup(true);
+  }
+  function goSetup(tell) {                                                   // lobby done: layout screen opens, the mini video call stays on
+    if (!R) return; R.lobby = false; hideLobby();
+    if (R.lobbyCam) { if (!R.callCam) R.callCam = R.lobbyCam; else R.lobbyCam.getTracks().forEach(function (t) { t.stop(); }); R.lobbyCam = null; }
+    if (tell) dcSend({ t: 'next' });
+    if (A) A.show('setup'); screenChanged(); setTimeout(function () { if (R) ensureSelf(); }, 300);
+  }
+  function layoutPicked(e) {                                                 // the layout tapped on the layout screen starts the photos straight away
+    if (!R || R.lobby || R.layoutOnline === false) return; var ch = e.target && e.target.closest && e.target.closest('.choice'); if (!ch) return;
+    if (R.role === 'guest') { e.preventDefault(); toast('Your host picks the layout.'); return; }
+    if (R.role !== 'host' || R.autoT) return;
+    R.autoT = setTimeout(function () { if (!R) return; R.autoT = 0; if (A && A.state.screen === 'setup') { var f = $('setupForm'); if (f) f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); } }, 160);
+  }
   function screenChanged() {
-    var sc = document.body.dataset.screen, on = !!R && sc && sc !== 'landing';
+    var sc = document.body.dataset.screen, on = !!R && sc && sc !== 'landing' && sc !== 'ldr' && sc !== 'tpl' && sc !== 'spot' && sc !== 'set';
     var b = $('dbBar'); if (b) b.hidden = !on; var cb = $('dbChatBtn'); if (cb) cb.hidden = !on;
     var t = $('dbTile'); if (t) t.hidden = !(R && R.conn === 'up' && sc === 'capture');
     if (R && sc === 'edit' && !R._editOpened && window.innerWidth >= 1000 && R.conn === 'up') { R._editOpened = true; chatOpen(true); }
     if (sc !== 'edit') R && (R._editOpened = false);
     if (R && sc === 'capture' && A && A.state.camStatus === 'ready') attachCam();
     if (!on) chatOpen(false);
-    var mini = $('dbMini'); if (mini) mini.hidden = !(R && R.conn === 'up' && (sc === 'edit' || sc === 'result'));
-    if (R && R.conn === 'up') { if (sc === 'edit' || sc === 'result') ensureSelf(); else if (sc === 'capture') stopCallCam(); }
+    var mini = $('dbMini'); if (mini) mini.hidden = !(R && R.conn === 'up' && (sc === 'setup' || sc === 'edit' || sc === 'result'));
+    if (R && R.conn === 'up') { if (sc === 'setup' || sc === 'edit' || sc === 'result') ensureSelf(); else if (sc === 'capture') stopCallCam(); }
     var mt = $('dbMiniTag'); if (mt && R) mt.textContent = label(false);
   }
   function kick() { ['dbRemote', 'dbAudio', 'dbMiniRemote', 'dbMiniSelf'].forEach(function (id) { var v = $(id); if (v && v.srcObject && v.paused) v.play().catch(function () { /* ignore */ }); }); }
@@ -15136,14 +15359,187 @@ body.db-on[data-screen="edit"] #screen-edit,body.db-on[data-screen="result"] #sc
       if (++tries > 60) { clearInterval(t); return; }
       if (!A || document.body.classList.contains('intro-on') || document.documentElement.classList.contains('den-wait')) return;
       clearInterval(t);
-      if (code) { openModal(code); setTimeout(function () { doJoin(code); }, 250); } else doJoin(want, true);
+      if (code) openModal(code); else doJoin(want, true);                         // invite link: the code is bound from the link, the person only adds a name
     }, 400);
   }
   window.DenBooth = {
     setupGate: setupGate, setupDone: setupDone, cap: onCap, nav: onNav, onShot: onShot, cam: attachCam, frames: onFrames, redo: onRedo,
-    active: function () { return !!R; }, connected: dcOpen
+    active: function () { return !!R; }, connected: dcOpen,
+    open: function (m) { buildUI(); openModal(); if (!R && (m === 'create' || m === 'join')) nameStep(m); }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<style id="den-nav-css">
+/* ===== Top navigation (Part 1): 5 small items, always spaced away from the content. Presentation only: no cookies, tokens, storage or requests. ===== */
+.den-nav{position:fixed;z-index:60;top:max(6px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));right:calc(max(8px,env(safe-area-inset-right,0px)) + 54px);display:flex;justify-content:center;pointer-events:none;transition:opacity .3s}
+.den-nav[hidden]{display:none}
+.den-nav .nv{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:3px;max-width:100%;overflow-x:auto;scrollbar-width:none;background:rgba(251,247,238,.94);border:1.5px solid var(--ink);border-radius:999px;box-shadow:2px 3px 0 var(--blue)}
+.den-nav .nv::-webkit-scrollbar{display:none}
+.den-nav button{flex:0 0 auto;font:inherit;font-weight:700;font-size:clamp(.66rem,2.6vw,.8rem);line-height:1.1;letter-spacing:.01em;padding:7px clamp(7px,1.6vw,14px);min-height:32px;border:0;border-radius:999px;background:transparent;color:var(--ink);white-space:nowrap;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.den-nav button[aria-current="page"],.den-nav button[aria-expanded="true"]{background:var(--blue-soft,#cfe8f8);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.den-nav button:focus-visible{outline:3px dashed var(--blue-deep,#2f82de);outline-offset:1px}
+@media (hover:hover) and (pointer:fine){.den-nav button:hover{background:rgba(143,201,238,.35)}}
+.den-nav .nv-s{display:none}
+@media (max-width:640px){.den-nav .nv-f{display:none}.den-nav .nv-s{display:inline}}
+body.intro-on .den-nav,body.booth-entering .den-nav,body.ev-live .den-nav{opacity:0;pointer-events:none}
+body.has-nav #screen-landing{padding-top:calc(var(--nav-h,46px) + 22px)}
+@media (max-width:400px){.den-nav button{font-size:.62rem;padding:7px 4px}.den-nav .nv{gap:0}}
+.scr-page{justify-content:flex-start;padding-top:calc(max(var(--nav-h,46px),env(safe-area-inset-top,0px) + 40px) + 22px)}
+.pg-wrap{width:min(720px,100%);display:flex;flex-direction:column;gap:clamp(16px,3vw,26px)}.pg-wrap.pg-wide{width:min(1040px,100%)}
+.pg-head{display:flex;flex-direction:column;gap:6px;align-items:center}
+.pg-head .title{font-size:clamp(1.8rem,5.4vw,2.8rem)}
+.pg-head .lede{max-width:34em}
+.ldr-hero{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 16px 18px;background:linear-gradient(180deg,#dff0fb 0,#eef7fd 55%,#fbf7ee 100%);border:2px solid var(--ink);border-radius:20px;box-shadow:4px 5px 0 var(--blue)}
+.ldr-art{width:min(320px,86%);height:auto;image-rendering:pixelated}
+.ldr-cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
+.ldr-big{flex:1 1 180px;max-width:260px;min-height:56px;justify-content:center;font-size:1.05rem}
+.ldr-note{margin:0;font-size:.85rem;opacity:.75;text-align:center}
+.ldr-sec{padding:18px 16px;background:var(--paper,#fbf7ee);border:2px solid var(--ink);border-radius:18px;box-shadow:3px 4px 0 rgba(47,130,222,.35)}
+.ldr-sec h2{margin:0 0 12px;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:1.6rem}
+.ldr-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:ls}
+.ldr-steps li{position:relative;display:flex;flex-direction:column;gap:2px;padding-left:46px;counter-increment:ls;min-height:36px}
+.ldr-steps li::before{content:counter(ls);position:absolute;left:0;top:0;width:34px;height:34px;display:grid;place-items:center;border:2px solid var(--ink);border-radius:10px;background:var(--blue-soft,#cfe8f8);font-weight:800}
+.ldr-steps b,.ldr-for b{font-size:1rem}.ldr-steps span,.ldr-for span{font-size:.9rem;opacity:.85}
+.ldr-join-how{margin:14px 0 0;padding:10px 12px;border:2px dashed var(--ink);border-radius:12px;font-size:.9rem;background:#fff8e4}
+.ldr-for{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ldr-for li{display:flex;flex-direction:column;gap:4px;padding:12px;border:2px solid var(--ink);border-radius:14px;background:#eef7fd}
+.ldr-for i{font-style:normal;font-size:1.6rem;line-height:1}
+.ldr-tips ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.tp-body{display:flex;flex-direction:column;gap:clamp(18px,3vw,28px);padding-bottom:110px}
+.tp-sec{padding:14px 12px 16px;background:var(--paper,#fbf7ee);border:2px solid var(--ink);border-radius:18px;box-shadow:3px 4px 0 rgba(47,130,222,.35)}
+.tp-sec h2{margin:0 0 4px;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:1.5rem}
+.tp-sec .tp-sub{margin:0 0 12px;font-size:.82rem;opacity:.7}
+.tp-grid{display:flex;flex-wrap:wrap;gap:14px 12px;justify-content:center}
+.tp-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 8px 8px;width:112px;box-sizing:border-box;font:inherit;color:var(--ink);background:#fff;border:2px solid transparent;border-radius:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tp-card.tp-wide{width:176px}
+.tp-card canvas{display:block;height:170px;width:auto;max-width:100%;aspect-ratio:var(--ar,.33);background:#eee;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.tp-card.tp-wide canvas{height:auto;width:100%}
+.tp-card span{font-size:.78rem;font-weight:700;text-align:center;line-height:1.15;overflow-wrap:anywhere}
+.tp-card[aria-pressed="true"]{border-color:var(--ink);background:var(--blue-soft,#cfe8f8);box-shadow:3px 3px 0 var(--ink)}
+.tp-card:focus-visible{outline:3px dashed var(--blue-deep,#2f82de);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.tp-card:hover{border-color:rgba(58,63,74,.4)}}
+.tp-start{position:fixed;z-index:70;left:50%;transform:translateX(-50%);bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 6px);display:flex;align-items:center;gap:12px;max-width:calc(100vw - 20px);padding:8px 8px 8px 16px;background:var(--paper,#fbf7ee);border:2px solid var(--ink);border-radius:999px;box-shadow:3px 4px 0 var(--blue);animation:tpUp .28s ease-out}
+.tp-start[hidden]{display:none}
+.tp-start-txt{font-weight:700;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tp-start .btn{min-height:44px;padding-inline:26px;flex:0 0 auto}
+@keyframes tpUp{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.tp-start{animation:none}}
+</style>
+<style id="den-pages2-css">
+/* ===== Part 2: the Spotlight page and the Settings page. Presentation only: no cookies, tokens, storage or requests. ===== */
+#screen-spot .pg-wrap,#screen-set .pg-wrap{padding-bottom:40px}
+#screen-spot #whFeat{display:block}
+#screen-spot #whFeat[hidden]{display:none}
+.sp-empty{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:22px 16px;background:var(--paper,#fbf7ee);border:2px solid var(--ink);border-radius:18px;box-shadow:3px 4px 0 rgba(47,130,222,.35)}
+.sp-empty[hidden]{display:none}
+.sp-guide{padding:18px 16px 16px;background:var(--paper,#fbf7ee);color:var(--ink);border:2px solid var(--ink);border-radius:18px;box-shadow:3px 4px 0 rgba(47,130,222,.35);scroll-margin-top:calc(var(--nav-h,46px) + 14px)}
+.sp-guide:focus{outline:none}.sp-guide:focus-visible{outline:3px dashed var(--blue-deep,#2f82de);outline-offset:3px}
+.sp-guide h2{margin:0 0 8px;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:1.6rem}
+.sp-guide p{margin:6px 0}.sp-guide ol{margin:8px 0 12px;padding-left:22px;line-height:1.55}
+.sp-guide .dp-ct{background:var(--paper-2,#fff);color:var(--ink);border-color:var(--ink)}
+.sp-guide .dp-ct a,.sp-guide .dp-ct button{border-color:var(--ink);color:var(--ink);background:var(--blue-soft,#f3e9d6)}
+.sp-fine{font-size:.8rem;opacity:.7;margin-top:12px!important}
+/* the old menu sheet, as a page */
+html body #screen-set #acctPanel.acct-panel,html body #screen-set #acctPanel.acct-panel:not([hidden]){
+  position:static;inset:auto;z-index:auto;display:flex!important;width:100%;max-width:none;max-height:none;overflow:visible;margin:0;transform:none;visibility:visible;pointer-events:auto;transition:none;
+  padding:16px 14px 18px;background:var(--paper,#fbf7ee);color:var(--ink);border:2px solid var(--ink);border-radius:22px;box-shadow:4px 5px 0 var(--blue);--mb-cols:1}
+html body #screen-set #acctPanel .acct-head{display:none}
+body[data-screen="set"] .profile-fab{display:none!important}
+html body #screen-set #acctPanel #viewMain>*,html body #screen-set #acctPanel #viewMain .acct-top>*,html body #screen-set #acctPanel #viewMain .acct-menu>*,html body #screen-set #acctPanel #viewMain .acct-foot>*{grid-column:1/-1!important}
+html body #screen-set #acctPanel #viewMain .acct-name-row{order:1}
+html body #screen-set #acctPanel #viewMain #dmSlotUser{order:22}
+html body #screen-set #acctPanel #viewMain .pp-menu{order:80;justify-self:center}
+html body #screen-set #acctPanel #viewMain #acLogout{order:99;margin-top:6px}
+html body #screen-set #acctPanel #viewMain .acct-msg{order:30}
+</style>
+
+<script id="den-nav-js">
+/* Top navigation + the Long-distance booth page + the Templates page. It only switches screens through the booth app's own show(), opens the existing menu sheet, and starts the camera;
+   it never reads, writes or clears a cookie, token or login, and sends no requests. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); }, A = function () { return window.__denApp; };
+  var nav = document.createElement('nav'); nav.id = 'denNav'; nav.className = 'den-nav'; nav.setAttribute('aria-label', 'Main');
+  nav.innerHTML = '<div class="nv"><button type="button" data-nav="home">Home</button><button type="button" data-nav="ldr"><span class="nv-f">Long-distance booth</span><span class="nv-s">Long-distance</span></button>' +
+    '<button type="button" data-nav="tpl"><span class="nv-f">Templates / layouts</span><span class="nv-s">Templates</span></button><button type="button" data-nav="spot">Spotlight</button><button type="button" data-nav="set" aria-haspopup="true">Settings</button></div>';
+  document.body.appendChild(nav);
+  var SHOW = { landing: 1, ldr: 1, tpl: 1, spot: 1, set: 1 };
+  function sync() {
+    var sc = document.body.dataset.screen || 'landing', on = !!SHOW[sc]; nav.hidden = !on; document.body.classList.toggle('has-nav', on);
+    if (on) { var r = nav.getBoundingClientRect(); document.documentElement.style.setProperty('--nav-h', Math.round(r.bottom || 46) + 'px'); }
+    nav.querySelectorAll('button').forEach(function (b) { var k = b.getAttribute('data-nav'); b.removeAttribute('aria-current'); if ((k === 'home' && sc === 'landing') || k === sc) b.setAttribute('aria-current', 'page'); });
+  }
+  new MutationObserver(function () { sync(); }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  window.addEventListener('resize', sync); setTimeout(sync, 400); setTimeout(sync, 1500);
+  var pb = $('profileBtn');
+  function toast(m) { try { A().toast(m); } catch (e) { /* ignore */ } }
+  nav.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-nav]'); if (!b || !A()) return; var k = b.getAttribute('data-nav'), sc = document.body.dataset.screen;
+    if (k === 'home') { if (sc !== 'landing') A().show('landing'); else { var l = $('screen-landing'); if (l) l.scrollTo({ top: 0, behavior: 'smooth' }); } }
+    else if (k === 'ldr') A().show('ldr');
+    else if (k === 'tpl') { A().show('tpl'); buildTpl(); }
+    else if (k === 'spot') A().show('spot');
+    else if (k === 'set') A().show('set');
+  });
+
+  /* ---- Spotlight page: the DEN PICKS board (moved here from the front page, same elements) + the Get featured button + the guide underneath ---- */
+  var wf = $('whFeat'), bh = $('spBoardHost'); if (wf && bh) bh.appendChild(wf);
+  function spEmpty() { var e = $('spEmpty'); if (e && wf) e.hidden = !wf.hidden; }
+  if (wf) new MutationObserver(spEmpty).observe(wf, { attributes: true, attributeFilter: ['hidden'] }); spEmpty();
+  function toGuide() { var g = $('spGuide'); if (g) { g.scrollIntoView({ behavior: 'smooth', block: 'start' }); try { g.focus({ preventScroll: true }); } catch (e) { /* ignore */ } } }
+  var g2 = $('spGet2'); if (g2) g2.addEventListener('click', toGuide);
+
+  /* ---- Settings page: the former menu sheet now lives here as a normal scrolling page (same elements, same code behind them) ---- */
+  var ap = $('acctPanel'), sh = $('setHost');
+  if (ap && sh) { sh.appendChild(ap); ap.setAttribute('role', 'region'); ap.removeAttribute('aria-modal'); }
+  function ensureOpen() { if (!ap || !pb) return; for (var n = 0; n < 2 && ap.hidden; n++) { nav._pass = 1; try { pb.click(); } finally { nav._pass = 0; } } }
+  function ensureClosed() { if (!ap || !pb || ap.hidden) return; nav._pass = 1; try { pb.click(); } finally { nav._pass = 0; } }
+  if (pb) pb.addEventListener('click', function (e) { if (nav._pass || !A()) return; e.stopImmediatePropagation(); e.preventDefault(); if (document.body.dataset.screen === 'set') { window.scrollTo(0, 0); ensureOpen(); } else A().show('set'); }, true);
+  new MutationObserver(function () { if (document.body.dataset.screen === 'set') setTimeout(ensureOpen, 0); else ensureClosed(); }).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  if (ap) new MutationObserver(function () { if (ap.hidden && document.body.dataset.screen === 'set') setTimeout(ensureOpen, 0); }).observe(ap, { attributes: true, attributeFilter: ['hidden'] });
+
+  /* ---- Long-distance booth page ---- */
+  function booth(m) { try { if (window.DenBooth && DenBooth.open) DenBooth.open(m); } catch (e) { /* ignore */ } }
+  $('ldrCreate').addEventListener('click', function () { booth('create'); });
+  $('ldrJoin').addEventListener('click', function () { booth('join'); });
+
+  /* ---- Templates page: grouped per layout, a template's name under its picture, Start opens the camera ---- */
+  var GROUPS = [{ id: 'idcard', title: 'ID card' }, { id: 'two', title: '2x6 2 photos' }, { id: 'three', title: '2x6 3 photos' }, { id: 'four', title: '2x6 4 photos' }, { id: 'six', title: '4x6 6 photos' }];
+  var sel = null, built = false;
+  function pick(card) {
+    document.querySelectorAll('#tplPgBody .tp-card[aria-pressed="true"]').forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+    card.setAttribute('aria-pressed', 'true'); sel = { layout: card.getAttribute('data-l'), tpl: card.getAttribute('data-t'), name: card.getAttribute('data-n'), group: card.getAttribute('data-g') };
+    $('tpStartTxt').textContent = sel.name + ' · ' + sel.group; $('tpStart').hidden = false;
+  }
+  function card(g, l, t, label, canvas, wide) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'tp-card' + (wide ? ' tp-wide' : ''); b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('data-l', l); b.setAttribute('data-t', t); b.setAttribute('data-n', label); b.setAttribute('data-g', g);
+    b.appendChild(canvas); var sp = document.createElement('span'); sp.textContent = label; b.appendChild(sp); return b;
+  }
+  function buildTpl() {
+    if (built || !A() || !A().tplList) return; built = true; var body = $('tplPgBody'); body.textContent = ''; var redo = [];
+    GROUPS.forEach(function (g) {
+      var sec = document.createElement('section'); sec.className = 'tp-sec'; sec.setAttribute('aria-label', g.title);
+      var h = document.createElement('h2'); h.textContent = g.title; sec.appendChild(h); var grid = document.createElement('div'); grid.className = 'tp-grid';
+      if (g.id === 'idcard') {
+        var ids = (window.DenIdCard && DenIdCard.presets) ? DenIdCard.presets() : [];
+        ids.forEach(function (p) { var c = DenIdCard.preview(p.i); c.setAttribute('aria-hidden', 'true'); c.style.setProperty('--ar', (1012 / 638).toFixed(4)); var cd = card(g.title, 'idcard', 'id:' + p.i, p.name, c, true); cd.setAttribute('data-p', p.i); grid.appendChild(cd); });
+      } else {
+        A().tplList(g.id).forEach(function (t) { var c = document.createElement('canvas'); c.setAttribute('aria-hidden', 'true'); try { A().tplThumb(c, g.id, t.id); } catch (e) { /* thumbnail is optional */ } grid.appendChild(card(g.title, g.id, t.id, t.label, c, false)); redo.push([c, g.id, t.id]); });
+      }
+      var sub = document.createElement('p'); sub.className = 'tp-sub'; sub.textContent = grid.children.length + (grid.children.length === 1 ? ' template' : ' templates'); sec.appendChild(sub); sec.appendChild(grid); body.appendChild(sec);
+    });
+    [700, 2200].forEach(function (ms) { setTimeout(function () { redo.forEach(function (r) { try { A().tplThumb(r[0], r[1], r[2]); } catch (e) { /* ignore */ } }); }, ms); });   // artwork that loads late
+  }
+  $('tplPgBody').addEventListener('click', function (e) { var c = e.target.closest && e.target.closest('.tp-card'); if (c) pick(c); });
+  $('tpStartBtn').addEventListener('click', function () {
+    if (!sel || !A()) return;
+    if (window.DenBooth && DenBooth.active && DenBooth.active()) { toast('Leave your online booth first to use the Templates page.'); return; }
+    if (sel.layout === 'idcard') { var i = parseInt(sel.tpl.slice(3), 10); try { DenIdCard.open(i); } catch (e) { toast('Could not open the ID card.'); } return; }
+    if (!A().tplStart(sel.layout, sel.tpl)) toast('Could not start with that template.');
+  });
+  var scr = $('screen-tpl'); if (scr) new MutationObserver(function () { if (!scr.hidden) buildTpl(); }).observe(scr, { attributes: true, attributeFilter: ['hidden'] });
 })();
 </script>
 <style id="den-icons-css">

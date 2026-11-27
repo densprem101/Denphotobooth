@@ -1,5 +1,5 @@
 /* Den Collective: offline-ready app (PWA). Bump VERSION every time you upload a new index.html so installed apps update. */
-const VERSION = 'den-v269';
+const VERSION = 'den-v272';
 const SHELL = ['/', '/index.html', '/manifest.json', '/favicon-32x32.png?v=6', '/favicon-48x48.png?v=6', '/favicon.ico', '/apple-touch-icon.png?v=6', '/icon-192.png?v=5', '/icon-512.png?v=5', '/icon-maskable-512.png?v=5', '/logo.png', '/icon-maskable-192.png', '/assets/den-art.js?v=202', '/assets/den-wav.js?v=202'];
 const EXTRA = [   // third-party files cached on install so they also work offline (fonts are added the first time the app is opened online)
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400;1,500&family=Caveat:wght@500;600&family=Special+Elite&display=swap',
